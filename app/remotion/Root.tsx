@@ -7,6 +7,9 @@ import {
   COMPOSITION_WIDTH,
 } from "./constants.mjs";
 import { Main } from "./components/Main";
+import { IntroModel } from "~/remotion/models/intro";
+
+
 
 export const RemotionRoot = () => {
   return (
@@ -18,7 +21,11 @@ export const RemotionRoot = () => {
         fps={COMPOSITION_FPS}
         width={COMPOSITION_WIDTH}
         height={COMPOSITION_HEIGHT}
-        defaultProps={{ title: "stranger" }}
+        defaultProps={{ 
+          clientname: "Default Client",
+          region: "Default Region",
+          state: "CA"
+         }}
       />
     </>
   );
