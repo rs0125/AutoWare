@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Player } from "@remotion/player";
@@ -13,14 +13,7 @@ import {
 import { CompositionProps, WarehouseVideoProps } from "@repo/shared";
 import { Main } from "~/remotion/components/Main";
 import { Form } from "~/components/ui/form";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card";
+
 import { Button } from "~/components/Button";
 import { SchemaFormGenerator } from "~/components/SchemaFormGenerator";
 
@@ -142,6 +135,13 @@ export default function Editor() {
         control: form.control,
     });
 
+    // Scroll to top when entering preview mode
+    useEffect(() => {
+        if (isPreviewing) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [isPreviewing]);
+
     // Use formValues if available, otherwise fallback to defaultValues
     // Transform the data to add TTS audio URLs before passing to player
     const rawFormValues = formValues as WarehouseVideoProps || defaultValues;
@@ -188,45 +188,48 @@ export default function Editor() {
         window.alert(message);
     };
 
-    // Mode 1: Onboarding View (Centered Card)
+    // Mode 1: Onboarding View (Full Page Form)
     if (!isPreviewing) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-                <Card className="w-full max-w-4xl">
-                    <CardHeader>
-                        <CardTitle>Create Your Warehouse Video</CardTitle>
-                        <CardDescription>
+            <div className="h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
+                    {/* Header */}
+                    <div className="mb-6 flex-shrink-0">
+                        <h1 className="text-3xl font-bold text-gray-900">Create Your Warehouse Video</h1>
+                        <p className="mt-2 text-gray-600">
                             Fill in the details below to generate your custom warehouse showcase video
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                        </p>
+                    </div>
+
+                    {/* Form */}
+                    <div className="bg-white rounded-lg shadow-sm p-6 md:p-8 overflow-y-auto flex-1">
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
-                                <div className="max-h-[60vh] overflow-y-auto pr-4">
-                                    <SchemaFormGenerator
-                                        schema={CompositionProps}
-                                        form={form}
-                                    />
-                                </div>
-                                <CardFooter className="px-0 pt-6">
+                            <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
+                                <SchemaFormGenerator
+                                    schema={CompositionProps}
+                                    form={form}
+                                />
+
+                                {/* Submit Button */}
+                                <div className="pt-6 border-t">
                                     <Button
                                         type="submit"
-                                        className="w-full h-12 text-lg font-semibold"
+                                        className="w-full sm:w-auto px-8 h-12 text-lg font-semibold"
                                     >
                                         Preview Video →
                                     </Button>
-                                </CardFooter>
+                                </div>
                             </form>
                         </Form>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         );
     }
 
     // Mode 2: Studio View (Split Screen)
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="h-screen overflow-hidden bg-gray-50">
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
                 <div className="flex items-center justify-between max-w-7xl mx-auto">

@@ -24,7 +24,7 @@ export default function App() {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body style={{ margin: 0, padding: 0, overflow: 'hidden', height: '100vh' }}>
         <Outlet />
         <ScrollRestoration />
         <Scripts />

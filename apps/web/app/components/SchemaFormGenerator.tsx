@@ -8,6 +8,12 @@ import {
     FormControl,
     FormMessage,
 } from "./ui/form";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "./ui/accordion";
 import { Input } from "./ui/input";
 import { Switch } from "./ui/switch";
 import {
@@ -107,8 +113,8 @@ function renderField<T extends FieldValues>(
             );
         }
         return (
-            <div key={fieldPath} className="space-y-4 p-4 border border-gray-200 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900">{label}</h3>
+            <div key={fieldPath} className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{label}</h3>
                 <div className="space-y-4">
                     {Object.entries(shape).map(([nestedKey, nestedType]) =>
                         renderField(nestedKey, nestedType, form, fieldPath)
@@ -126,15 +132,15 @@ function renderField<T extends FieldValues>(
             const arrayValue = form.watch(fieldPath as any) || [];
 
             return (
-                <div key={fieldPath} className="space-y-2">
-                    <FormLabel>{label}</FormLabel>
-                    <div className="space-y-2">
+                <div key={fieldPath} className="space-y-3">
+                    <FormLabel className="text-base font-semibold text-gray-900">{label}</FormLabel>
+                    <div className="space-y-3">
                         {arrayValue.map((_, index: number) => {
                             const shape = elementType._def.shape();
                             return (
-                                <div key={`${fieldPath}.${index}`} className="p-3 border border-gray-200 rounded-md space-y-2">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm font-medium">Item {index + 1}</span>
+                                <div key={`${fieldPath}.${index}`} className="p-4 border border-gray-200 rounded-lg bg-gray-50/50 space-y-4 relative group">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm font-medium text-gray-500">Item {index + 1}</span>
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -142,9 +148,9 @@ function renderField<T extends FieldValues>(
                                                 const updated = current.filter((_: any, i: number) => i !== index);
                                                 form.setValue(fieldPath as any, updated);
                                             }}
-                                            className="text-xs text-red-600 hover:text-red-800"
+                                            className="text-xs font-medium text-red-600 hover:text-red-800 transition-colors opacity-0 group-hover:opacity-100"
                                         >
-                                            Remove
+                                            Remove Item
                                         </button>
                                     </div>
                                     {Object.entries(shape).map(([nestedKey, nestedType]) =>
@@ -167,9 +173,9 @@ function renderField<T extends FieldValues>(
                                 });
                                 form.setValue(fieldPath as any, [...current, defaultItem]);
                             }}
-                            className="text-sm text-blue-600 hover:text-blue-800"
+                            className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
                         >
-                            + Add {toTitleCase(key.replace(/s$/, ""))}
+                            <span>+</span> Add {toTitleCase(key.replace(/s$/, ""))}
                         </button>
                     </div>
                 </div>
@@ -217,9 +223,9 @@ function renderField<T extends FieldValues>(
                 control={form.control}
                 name={fieldPath as FieldPath<T>}
                 render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-gray-50/30">
                         <div className="space-y-0.5">
-                            <FormLabel>{label}</FormLabel>
+                            <FormLabel className="text-base">{label}</FormLabel>
                         </div>
                         <FormControl>
                             <Switch
@@ -249,6 +255,7 @@ function renderField<T extends FieldValues>(
                                 step="any"
                                 {...field}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                className="bg-gray-50/30 focus:bg-white transition-colors"
                             />
                         </FormControl>
                         <FormMessage />
@@ -269,7 +276,7 @@ function renderField<T extends FieldValues>(
                     name={fieldPath as FieldPath<T>}
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>{label}</FormLabel>
+                            <FormLabel className="text-base font-medium">{label}</FormLabel>
                             <FormControl>
                                 <VideoUpload
                                     value={field.value}
@@ -293,7 +300,7 @@ function renderField<T extends FieldValues>(
                     <FormItem>
                         <FormLabel>{label}</FormLabel>
                         <FormControl>
-                            <Input {...field} />
+                            <Input {...field} className="bg-gray-50/30 focus:bg-white transition-colors" />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -319,11 +326,38 @@ export function SchemaFormGenerator<T extends FieldValues>({
 
     const shape = schemaType._def.shape();
 
+    // Determine default open value - open the first section by default
+    const defaultOpenValue = Object.keys(shape)[0];
+
     return (
-        <div className="space-y-6">
-            {Object.entries(shape).map(([key, zodType]) =>
-                renderField(key, zodType, form, basePath)
-            )}
-        </div>
+        <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={defaultOpenValue}>
+            {Object.entries(shape).map(([key, zodType]) => {
+                const isSection = getFieldType(zodType) === "ZodObject";
+
+                if (isSection) {
+                    return (
+                        <AccordionItem value={key} key={key} className="border rounded-lg bg-white shadow-sm px-4">
+                            <AccordionTrigger className="hover:no-underline py-4">
+                                <span className="text-lg font-semibold text-gray-900">{toTitleCase(key)}</span>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-2 pb-6">
+                                <div className="space-y-6">
+                                    {/* Render children of the section manually to skip the wrapper div */}
+                                    {Object.entries((zodType as any)._def.shape()).map(([childKey, childType]) =>
+                                        renderField(childKey, childType, form, key)
+                                    )}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    );
+                }
+
+                return (
+                    <div key={key} className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+                        {renderField(key, zodType, form, basePath)}
+                    </div>
+                );
+            })}
+        </Accordion>
     );
 }
