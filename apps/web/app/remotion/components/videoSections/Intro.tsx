@@ -23,6 +23,8 @@ export const Intro: React.FC<IntroModel> = ({ clientname, region, state }) => {
           fontSize: 40,
           backgroundColor: "white",
           textAlign: "center",
+          fontFamily: "Inter, sans-serif",
+          color: "#1f2937",
         }}
       >
         <img

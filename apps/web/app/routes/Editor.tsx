@@ -23,11 +23,11 @@ export const links: Route.LinksFunction = () => [
 
 // Default values for the warehouse video form - Complete sample data
 const defaultValues: WarehouseVideoProps = {
-    meta: {
+    intro: {
         clientName: "Acme Logistics Inc.",
         projectLocationName: "Greater Noida Industrial Hub",
     },
-    sectionSatDrone: {
+    satDroneSection: {
         location: {
             lat: 28.4744,
             lng: 77.5040,
@@ -38,7 +38,7 @@ const defaultValues: WarehouseVideoProps = {
             transcript: "Welcome to Greater Noida Industrial Hub, strategically located for optimal logistics operations.",
         },
     },
-    sectionLocation: {
+    locationSection: {
         nearbyPoints: [
             {
                 type: "road",
@@ -56,7 +56,7 @@ const defaultValues: WarehouseVideoProps = {
             transcript: "Located just 2 kilometers from NH-24 highway and 5 kilometers from Noida Metro Station.",
         },
     },
-    sectionInternal: {
+    internalSection: {
         wideShotVideoUrl: "",
         specs: {
             clearHeight: "12 meters",
@@ -79,14 +79,14 @@ const defaultValues: WarehouseVideoProps = {
             transcript: "The warehouse features 12-meter clear height with anti-skid epoxy flooring, complete with ventilation and insulation.",
         },
     },
-    sectionDocking: {
+    dockingSection: {
         dockPanVideoUrl: "",
         audio: {
             durationInSeconds: 10,
             transcript: "Multiple docking bays equipped for simultaneous loading and unloading operations.",
         },
     },
-    sectionCompliance: {
+    complianceSection: {
         fireSafetyVideoUrl: "",
         safetyFeatures: [
             "hydrants",
@@ -107,7 +107,7 @@ function transformAudioToTTS(data: any): WarehouseVideoProps {
     const result = { ...data };
 
     // Generate placeholder TTS URLs for each section
-    const sections = ['sectionSatDrone', 'sectionLocation', 'sectionInternal', 'sectionDocking', 'sectionCompliance'];
+    const sections = ['satDroneSection', 'locationSection', 'internalSection', 'dockingSection', 'complianceSection'];
 
     sections.forEach(section => {
         if (result[section]?.audio) {
@@ -192,13 +192,16 @@ export default function Editor() {
     if (!isPreviewing) {
         return (
             <div className="h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
+                <div className="w-full px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col">
                     {/* Header */}
-                    <div className="mb-6 flex-shrink-0">
-                        <h1 className="text-3xl font-bold text-gray-900">Create Your Warehouse Video</h1>
-                        <p className="mt-2 text-gray-600">
-                            Fill in the details below to generate your custom warehouse showcase video
-                        </p>
+                    <div className="mb-6 flex-shrink-0 flex items-center gap-4">
+                        <img src="/WOG_logo.png" alt="WareOnGo Logo" className="h-12 w-auto" />
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">WareOnGo</h1>
+                            <p className="mt-1 text-gray-600">
+                                Create Your Warehouse Video
+                            </p>
+                        </div>
                     </div>
 
                     {/* Form */}
@@ -231,11 +234,14 @@ export default function Editor() {
     return (
         <div className="h-screen overflow-hidden bg-gray-50">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
-                <div className="flex items-center justify-between max-w-7xl mx-auto">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Video Editor Studio</h1>
-                        <p className="text-sm text-gray-500">Edit your warehouse video in real-time</p>
+            <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10 w-full">
+                <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                        <img src="/WOG_logo.png" alt="WareOnGo Logo" className="h-10 w-auto" />
+                        <div>
+                            <h1 className="text-xl font-bold text-gray-900 leading-tight">WareOnGo</h1>
+                            <p className="text-xs text-gray-500">Video Editor Studio</p>
+                        </div>
                     </div>
                     <Button
                         type="button"
@@ -250,7 +256,7 @@ export default function Editor() {
             {/* Split Screen Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-0 h-[calc(100vh-73px)]">
                 {/* Left Panel: Remotion Player */}
-                <div className="bg-black flex items-center justify-center p-4 overflow-hidden">
+                <div className="bg-gray-50 flex items-center justify-center p-4 overflow-hidden border-r-2 border-black">
                     <div className="w-full max-w-full">
                         <Player
                             component={Main}

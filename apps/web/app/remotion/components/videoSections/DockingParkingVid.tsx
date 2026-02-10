@@ -1,22 +1,14 @@
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { ExternalDockingSchema } from "@repo/shared";
+import { z } from "zod";
+import { VideoDisplay } from "../VideoDisplay";
 
-export const DockingParkingVid = () => {
-  const frame = useCurrentFrame();
-
+export const DockingParkingVid: React.FC<z.infer<typeof ExternalDockingSchema>> = (props) => {
   return (
-    <>
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: 40,
-          backgroundColor: "white",
-          textAlign: "center",
-        }}
-      >
-          35-45 sec: External docking and parking videos - Manual video 5: Dock
-          access and docking space pan video
-      </AbsoluteFill>
-    </>
+    <VideoDisplay
+      videoUrl={props.dockPanVideoUrl}
+      audioUrl={props.audio.audioUrl}
+      transcript={props.audio.transcript}
+      placeholderText="Docking Section - No Dock Video"
+    />
   );
 };

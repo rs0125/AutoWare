@@ -7,6 +7,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "zod": "^3.22.0"
+    "zod": "^3.24.1"
   }
 }

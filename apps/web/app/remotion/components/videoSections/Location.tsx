@@ -1,27 +1,14 @@
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { LocationHighlightSchema } from "@repo/shared";
+import { z } from "zod";
+import { VideoDisplay } from "../VideoDisplay";
 
-export const LocationVid = () => {
-  const frame = useCurrentFrame();
-
+export const LocationVid: React.FC<z.infer<typeof LocationHighlightSchema>> = (props) => {
   return (
-    <>
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: 40,
-          backgroundColor: "white",
-          textAlign: "center",
-        }}
-      >
-          10-20 sec: Map highlight of key nearby locations: mix of automated
-          with human nudge <br />
-          Human highlights nearby key roads, hospital, railway/airport then
-          highlighted using map data into a crisp animation (showing distance){" "}
-          <br />
-          Another optional manual video of the approach road entering to the
-          warehouse (Manual video 1b)
-      </AbsoluteFill>
-    </>
+    <VideoDisplay
+      videoUrl={props.approachRoadVideoUrl}
+      audioUrl={props.audio.audioUrl}
+      transcript={props.audio.transcript}
+      placeholderText="Location Section - No Approach Road Video"
+    />
   );
 };

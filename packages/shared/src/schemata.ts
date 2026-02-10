@@ -117,17 +117,17 @@ export const ComplianceSchema = z.object({
 // MASTER COMPOSITION PROPS
 // ---------------------------------------------------------------------------
 export const CompositionProps = z.object({
-  meta: z.object({
+  intro: z.object({
     clientName: z.string(),
     projectLocationName: z.string(),
   }),
 
   // The Video Sections
-  sectionSatDrone: SatDroneSchema,
-  sectionLocation: LocationHighlightSchema,
-  sectionInternal: InternalStorageSchema,
-  sectionDocking: ExternalDockingSchema,
-  sectionCompliance: ComplianceSchema,
+  satDroneSection: SatDroneSchema,
+  locationSection: LocationHighlightSchema,
+  internalSection: InternalStorageSchema,
+  dockingSection: ExternalDockingSchema,
+  complianceSection: ComplianceSchema,
 });
 
 export type WarehouseVideoProps = z.infer<typeof CompositionProps>;

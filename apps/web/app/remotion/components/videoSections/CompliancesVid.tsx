@@ -1,24 +1,14 @@
-import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { CompliancesModel } from "~/remotion/models/Compliances";
+import { ComplianceSchema } from "@repo/shared";
+import { z } from "zod";
+import { VideoDisplay } from "../VideoDisplay";
 
-export const CompliancesVid: React.FC<CompliancesModel> = ({ complianceList }) => {
-  const frame = useCurrentFrame();
-  console.log(complianceList);
-
+export const CompliancesVid: React.FC<z.infer<typeof ComplianceSchema>> = (props) => {
   return (
-    <>
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: 40,
-          backgroundColor: "white",
-          textAlign: "center",
-        }}
-      >
-          45-55 sec: Compliances: - Fire safety measures videos (hydrants,
-          sprinklers, alarm system, pump room etc)
-      </AbsoluteFill>
-    </>
+    <VideoDisplay
+      videoUrl={props.fireSafetyVideoUrl}
+      audioUrl={props.audio.audioUrl}
+      transcript={props.audio.transcript}
+      placeholderText="Compliance Section - No Fire Safety Video"
+    />
   );
 };

@@ -1,7 +1,7 @@
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { satdroneModel } from "~/remotion/models/satdrone";
 
-export const SatDrone : React.FC<satdroneModel> = () => {
+export const SatDrone: React.FC<satdroneModel> = () => {
   const frame = useCurrentFrame();
 
   return (
@@ -13,12 +13,14 @@ export const SatDrone : React.FC<satdroneModel> = () => {
           fontSize: 40,
           backgroundColor: "white",
           textAlign: "center",
+          fontFamily: "Inter, sans-serif",
+          color: "#1f2937",
         }}
       >
-          5-10 sec: Map zoom in: has to be automated using satellite map data
-          <br />
-          cinematic drone sweep of the warehouse compound: Optional shot to be
-          uploaded (Manual video 1a)
+        5-10 sec: Map zoom in: has to be automated using satellite map data
+        <br />
+        cinematic drone sweep of the warehouse compound: Optional shot to be
+        uploaded (Manual video 1a)
       </AbsoluteFill>
     </>
   );

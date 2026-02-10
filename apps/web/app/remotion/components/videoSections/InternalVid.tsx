@@ -1,28 +1,15 @@
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { InternalStorageSchema } from "@repo/shared";
+import { z } from "zod";
+import { VideoDisplay } from "../VideoDisplay";
 
-export const InternalVid = () => {
-  const frame = useCurrentFrame();
-
+export const InternalVid: React.FC<z.infer<typeof InternalStorageSchema>> = (props) => {
   return (
-    <>
-      <AbsoluteFill
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          fontSize: 40,
-          backgroundColor: "white",
-          textAlign: "center",
-        }}
-      >
-          20-35 sec: Internal storage related photos and videos - Manual video
-          2: Snippet showing entire length of the warehouse alongwith floor and
-          ceiling. This is to be used to showcase annotations of features like
-          clear height, ventilation, insulation, flooring etc and any animations
-          of vertical racking. - Manual video 3: Internal access to docks and
-          the arrangement of these docks inside. - manual video 4: Utility rooms
-          and features ke videos (bathrooms, fire pump room, security room,
-          canteen etc). Needs checkboxes for each feature uploaded.
-      </AbsoluteFill>
-    </>
+    // Priority: wide shot > internal dock > first utility video
+    <VideoDisplay
+      videoUrl={props.wideShotVideoUrl || props.internalDockVideoUrl || props.utilities.videoUrl}
+      audioUrl={props.audio.audioUrl}
+      transcript={props.audio.transcript}
+      placeholderText="Internal Section - No Videos Uploaded"
+    />
   );
 };

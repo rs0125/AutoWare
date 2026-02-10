@@ -11,13 +11,13 @@ import { WarehouseVideoProps, CompositionProps } from "@repo/shared";
 
 // Placeholder data using the master schema from shared package
 const defaultWarehouseProps: WarehouseVideoProps = {
-  meta: {
+  intro: {
     clientName: "Acme Logistics Inc.",
     projectLocationName: "Greater Noida Industrial Hub",
   },
 
   // Section 1: Satellite & Drone
-  sectionSatDrone: {
+  satDroneSection: {
     location: {
       lat: 28.4744,
       lng: 77.5040,
@@ -31,7 +31,7 @@ const defaultWarehouseProps: WarehouseVideoProps = {
   },
 
   // Section 2: Location Highlights
-  sectionLocation: {
+  locationSection: {
     nearbyPoints: [
       { name: "NH-24 Highway", type: "road", distanceKm: 2.5 },
       { name: "IGI Airport", type: "airport", distanceKm: 45 },
@@ -47,7 +47,7 @@ const defaultWarehouseProps: WarehouseVideoProps = {
   },
 
   // Section 3: Internal Storage
-  sectionInternal: {
+  internalSection: {
     wideShotVideoUrl: "https://storage.example.com/internal-wide.mp4",
     specs: {
       clearHeight: "32 feet",
@@ -69,7 +69,7 @@ const defaultWarehouseProps: WarehouseVideoProps = {
   },
 
   // Section 4: External Docking
-  sectionDocking: {
+  dockingSection: {
     dockPanVideoUrl: "https://storage.example.com/dock-pan.mp4",
     dockCount: 12,
     audio: {
@@ -80,7 +80,7 @@ const defaultWarehouseProps: WarehouseVideoProps = {
   },
 
   // Section 5: Compliances
-  sectionCompliance: {
+  complianceSection: {
     fireSafetyVideoUrl: "https://storage.example.com/fire-safety.mp4",
     safetyFeatures: ["hydrants", "sprinklers", "alarm_system", "pump_room", "smoke_detectors"],
     audio: {

@@ -14,10 +14,10 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
   // Debug: Check if props are being passed
   console.log("Main component props:", props);
-  console.log("Props meta:", props?.meta);
+  console.log("Props meta:", props?.intro);
 
   // Fallback if props are undefined
-  if (!props || !props.meta) {
+  if (!props || !props.intro) {
     return (
       <div style={{ color: 'red', padding: 20 }}>
         ERROR: Props not passed correctly. Props: {JSON.stringify(props)}
@@ -25,57 +25,60 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
     );
   }
 
+  const introDuration = 5 * fps;
+  const satDroneDuration = (props.satDroneSection.audio.durationInSeconds || 5) * fps;
+  const locationDuration = (props.locationSection.audio.durationInSeconds || 10) * fps;
+  const internalDuration = (props.internalSection.audio.durationInSeconds || 15) * fps;
+  const dockingDuration = (props.dockingSection.audio.durationInSeconds || 10) * fps;
+  const complianceDuration = (props.complianceSection.audio.durationInSeconds || 10) * fps;
+  const outroDuration = 5 * fps;
+
+  const satDroneStart = introDuration;
+  const locationStart = satDroneStart + satDroneDuration;
+  const internalStart = locationStart + locationDuration;
+  const dockingStart = internalStart + internalDuration;
+  const complianceStart = dockingStart + dockingDuration;
+  const outroStart = complianceStart + complianceDuration;
+
   return (
     <>
       {/* First Video Intro*/}
-      <Sequence from={0} durationInFrames={5 * fps}>
-        {/* OLD: <Intro clientname="Client B" region="ABXD" state="Karnataka"  /> */}
-        {/* TODO: Update Intro to use props.meta.clientName and props.meta.projectLocationName */}
-        <Intro clientname={props.meta.clientName} region={props.meta.projectLocationName} />
+      <Sequence from={0} durationInFrames={introDuration}>
+        <Intro clientname={props.intro.clientName} region={props.intro.projectLocationName} />
       </Sequence>
 
       {/* Second Video SatDrone */}
-      <Sequence from={5 * fps} durationInFrames={5 * fps}>
-        {/* OLD: <SatDrone dronevideourl="Test" satimageurl="Test" latitude={12.9716} longitude={77.5946} /> */}
-        {/* TODO: Update SatDrone to use props.sectionSatDrone */}
+      <Sequence from={satDroneStart} durationInFrames={satDroneDuration}>
         <SatDrone
-          dronevideourl={props.sectionSatDrone.droneVideoUrl || "Test"}
+          dronevideourl={props.satDroneSection.droneVideoUrl || "Test"}
           satimageurl="Test"
-          latitude={props.sectionSatDrone.location.lat}
-          longitude={props.sectionSatDrone.location.lng}
+          latitude={props.satDroneSection.location.lat}
+          longitude={props.satDroneSection.location.lng}
         />
       </Sequence>
 
       {/* Third Video Location*/}
-      <Sequence from={10 * fps} durationInFrames={10 * fps}>
-        {/* OLD: <LocationVid/> */}
-        {/* TODO: Update LocationVid to use props.sectionLocation */}
-        <LocationVid />
+      <Sequence from={locationStart} durationInFrames={locationDuration}>
+        <LocationVid {...props.locationSection} />
       </Sequence>
 
       {/* Fourth Video  Internal*/}
-      <Sequence from={20 * fps} durationInFrames={15 * fps}>
-        {/* OLD: <InternalVid/> */}
-        {/* TODO: Update InternalVid to use props.sectionInternal */}
-        <InternalVid />
+      <Sequence from={internalStart} durationInFrames={internalDuration}>
+        <InternalVid {...props.internalSection} />
       </Sequence>
 
       {/* Fifth Video Docking & parking*/}
-      <Sequence from={35 * fps} durationInFrames={10 * fps}>
-        {/* OLD: <DockingParkingVid/> */}
-        {/* TODO: Update DockingParkingVid to use props.sectionDocking */}
-        <DockingParkingVid />
+      <Sequence from={dockingStart} durationInFrames={dockingDuration}>
+        <DockingParkingVid {...props.dockingSection} />
       </Sequence>
 
       {/* Sixth Video Compliances */}
-      <Sequence from={45 * fps} durationInFrames={10 * fps}>
-        {/* OLD: <CompliancesVid complianceList={["Fire safety measures videos (hydrants, sprinklers, alarm system, pump room etc)"]} /> */}
-        {/* TODO: Update CompliancesVid to use props.sectionCompliance */}
-        <CompliancesVid complianceList={["Fire safety measures videos (hydrants, sprinklers, alarm system, pump room etc)"]} />
+      <Sequence from={complianceStart} durationInFrames={complianceDuration}>
+        <CompliancesVid {...props.complianceSection} />
       </Sequence>
 
       {/*  Seventh Video (Outro) */}
-      <Sequence from={55 * fps} durationInFrames={5 * fps}>
+      <Sequence from={outroStart} durationInFrames={outroDuration}>
         <Outro />
       </Sequence>
     </>

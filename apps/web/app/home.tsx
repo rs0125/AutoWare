@@ -16,11 +16,11 @@ export default function Index() {
   // Use the warehouse video props structure
   const inputProps: WarehouseVideoProps = useMemo(() => {
     return {
-      meta: {
+      intro: {
         clientName: "Acme Logistics Inc.",
         projectLocationName: "Greater Noida Industrial Hub",
       },
-      sectionSatDrone: {
+      satDroneSection: {
         location: { lat: 28.4744, lng: 77.5040 },
         droneVideoUrl: "https://storage.example.com/drone-footage.mp4",
         audio: {
@@ -29,7 +29,7 @@ export default function Index() {
           transcript: "Welcome to our state-of-the-art warehouse facility located in Greater Noida.",
         },
       },
-      sectionLocation: {
+      locationSection: {
         nearbyPoints: [
           { name: "NH-24 Highway", type: "road" as const, distanceKm: 2.5 },
           { name: "IGI Airport", type: "airport" as const, distanceKm: 45 },
@@ -43,7 +43,7 @@ export default function Index() {
           transcript: "Strategically located with excellent connectivity.",
         },
       },
-      sectionInternal: {
+      internalSection: {
         wideShotVideoUrl: "https://storage.example.com/internal-wide.mp4",
         specs: {
           clearHeight: "32 feet",
@@ -63,7 +63,7 @@ export default function Index() {
           transcript: "The facility features 32 feet clear height with VDF flooring.",
         },
       },
-      sectionDocking: {
+      dockingSection: {
         dockPanVideoUrl: "https://storage.example.com/dock-pan.mp4",
         dockCount: 12,
         audio: {
@@ -72,7 +72,7 @@ export default function Index() {
           transcript: "Our facility is equipped with 12 modern loading docks.",
         },
       },
-      sectionCompliance: {
+      complianceSection: {
         fireSafetyVideoUrl: "https://storage.example.com/fire-safety.mp4",
         safetyFeatures: ["hydrants" as const, "sprinklers" as const, "alarm_system" as const, "pump_room" as const, "smoke_detectors" as const],
         audio: {
