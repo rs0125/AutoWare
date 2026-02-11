@@ -42,6 +42,7 @@ const AudioMetaSchema = z.object({
 export const SatDroneSchema = z.object({
   location: GeoLocation,
   droneVideoUrl: MediaUrl.optional(),
+  satelliteImageUrl: MediaUrl.optional(), // NEW: Optional satellite image
 
   // ✅ Audio is now a core part of the section
   audio: AudioMetaSchema,

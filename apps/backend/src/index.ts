@@ -1,13 +1,31 @@
+import 'dotenv/config';
 import express, { Response, Request} from 'express';
 import projectrouter from './routes/prioject.routes';
 import renderrouter from './routes/render.routes';
+import warehouserouter from './routes/warehouse.routes';
+import compositionrouter from './routes/composition.routes';
+import r2router from './routes/r2.routes';
+import ttsrouter from './routes/tts.routes';
+import mapsrouter from './routes/maps.routes';
 
 
 const app = express();
 
+app.use(express.json());
+
 app.use('/api/projects', projectrouter);
 
-app.use('api/render', renderrouter)
+app.use('/api/render', renderrouter);
+
+app.use('/api/warehouse', warehouserouter);
+
+app.use('/api/composition', compositionrouter);
+
+app.use('/api/r2', r2router);
+
+app.use('/api/tts', ttsrouter);
+
+app.use('/api/maps', mapsrouter);
 
 projectrouter.get("/health", (req : Request, res : Response)=>{
     res.status(201).send("Server Up and Running")
