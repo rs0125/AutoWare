@@ -121,11 +121,22 @@ function ProjectsPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header with Logo */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <img src="/WOG_logo.png" alt="WareOnGo Logo" className="h-10 w-auto" />
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">WareOnGo</h1>
+            <p className="text-xs text-gray-500">Video Editor Studio</p>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Page Title */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Projects</h1>
+            <h2 className="text-3xl font-bold text-foreground">Projects</h2>
             <p className="text-gray-600 mt-1">Manage your video composition projects</p>
           </div>
           <Button

@@ -41,6 +41,7 @@ interface SchemaFormGeneratorProps<T extends FieldValues> {
 // Helper to convert camelCase to Title Case
 const toTitleCase = (str: string): string => {
     return str
+        .replace(/VideoUrl$/i, 'Video') // Replace "VideoUrl" with "Video"
         .replace(/([A-Z])/g, " $1")
         .replace(/^./, (s) => s.toUpperCase())
         .trim();

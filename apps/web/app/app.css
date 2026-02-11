@@ -1,23 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fff;
-  --foreground: #000;
-  --unfocused-border-color: #eaeaea;
-  --focused-border-color: #666;
+@theme {
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-white: #ffffff;
+  --color-black: #000000;
 
-  --button-disabled-color: #fafafa;
-  --disabled-text-color: #999;
+  --animate-spin: spin 1s linear infinite;
 
-  --geist-border-radius: 5px;
-  --geist-quarter-pad: 6px;
-  --geist-half-pad: 12px;
-  --geist-pad: 24px;
-  --geist-font: "Inter";
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
 
-  --geist-error: #e00;
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
 
-  --subtitle: #666;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --radius: 0.5rem;
+
+    --unfocused-border-color: #eaeaea;
+    --focused-border-color: #666;
+    --button-disabled-color: #fafafa;
+    --disabled-text-color: #999;
+    --geist-border-radius: 5px;
+    --geist-quarter-pad: 6px;
+    --geist-half-pad: 12px;
+    --geist-pad: 24px;
+    --geist-font: "Inter";
+    --geist-error: #e00;
+    --subtitle: #666;
+  }
+
+  * {
+    border-color: #e5e7eb;
+  }
+
+  body {
+    background-color: #ffffff;
+    color: #111827;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 /* Force light theme - override system preference */
@@ -26,8 +85,8 @@ html.light {
 }
 
 html.light :root {
-  --background: #fff;
-  --foreground: #000;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
   --unfocused-border-color: #eaeaea;
   --focused-border-color: #666;
   --button-disabled-color: #fafafa;
@@ -59,6 +118,7 @@ html.light :root {
     0% {
       opacity: 1;
     }
+
     100% {
       opacity: 0.15;
     }
@@ -70,6 +130,7 @@ html.light :root {
     transform: translateX(100%);
     opacity: 0;
   }
+
   100% {
     transform: translateX(0);
     opacity: 1;

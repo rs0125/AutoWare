@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "./Button";
+import { Play, Pause } from "lucide-react";
 
 interface TranscriptInputProps {
   value?: string;
@@ -28,6 +29,8 @@ export function TranscriptInput({
   const [hasChanged, setHasChanged] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastAudioUrl, setLastAudioUrl] = useState<string | undefined>(undefined);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Normalize whitespace for comparison - trim and collapse multiple spaces
   const normalizeText = (text: string): string => {
@@ -82,6 +85,38 @@ export function TranscriptInput({
     }
   };
 
+  const handlePlayPause = () => {
+    if (!audioRef.current || !audioUrl) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  // Handle audio ended event
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => setIsPlaying(false);
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('pause', handlePause);
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, [audioUrl]);
+
+  // Calculate minimum duration (audio + 1 second buffer)
+  const minimumDuration = audioDuration ? (audioDuration + 1.0).toFixed(1) : null;
+
   // Show button when: 
   // 1. No audio exists, OR
   // 2. Transcript has changed from original, OR
@@ -107,21 +142,54 @@ export function TranscriptInput({
           disabled={disabled || isGenerating}
           placeholder="Enter transcript text..."
         />
-        {showGenerateButton && (
-          <Button
-            type="button"
-            onClick={handleGenerateSpeech}
-            disabled={isGenerating || !value.trim()}
-            loading={isGenerating}
-          >
-            {isGenerating ? "Generating..." : "Generate Speech"}
-          </Button>
-        )}
+        <div className="flex flex-col gap-2">
+          {audioUrl && (
+            <Button
+              type="button"
+              onClick={handlePlayPause}
+              variant="secondary"
+              disabled={!audioUrl}
+              className="whitespace-nowrap"
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 mr-1" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-1" />
+                  Play
+                </>
+              )}
+            </Button>
+          )}
+          {showGenerateButton && (
+            <Button
+              type="button"
+              onClick={handleGenerateSpeech}
+              disabled={isGenerating || !value.trim()}
+              loading={isGenerating}
+              variant="outline"
+            >
+              {isGenerating ? "Generating..." : "Generate Speech"}
+            </Button>
+          )}
+        </div>
       </div>
-      {audioUrl && audioDuration && (
-        <p className="text-xs text-gray-500">
-          Audio length: {audioDuration.toFixed(1)} seconds
-        </p>
+      {audioUrl && audioDuration ? (
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <span>Audio: {audioDuration.toFixed(1)}s</span>
+          {minimumDuration && (
+            <span>Minimum section: {minimumDuration}s</span>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-500">No audio added</p>
+      )}
+      {/* Hidden audio element for playback */}
+      {audioUrl && (
+        <audio ref={audioRef} src={audioUrl} preload="metadata" />
       )}
     </div>
   );
