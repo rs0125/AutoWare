@@ -14,4 +14,10 @@ export default defineConfig({
     },
   },
   plugins: [reactRouter(), tsconfigPaths(), tailwindcss()],
+  worker: {
+    format: 'es',
+  },
+  optimizeDeps: {
+    exclude: ['@remotion/player'],
+  },
 });

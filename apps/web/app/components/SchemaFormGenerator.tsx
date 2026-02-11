@@ -25,12 +25,17 @@ import {
 } from "./ui/select";
 import { VideoUpload } from "./VideoUpload";
 import { GoogleMapsInput } from "./GoogleMapsInput";
+import { TranscriptInput } from "./TranscriptInput";
 
 interface SchemaFormGeneratorProps<T extends FieldValues> {
     schema: z.ZodType<T>;
     form: UseFormReturn<T>;
     basePath?: string;
     onFileSelect?: (fieldPath: string, file: File | null) => void;
+    compositionId?: string;
+    onSatelliteImageConfirm?: (googleMapsUrl: string) => Promise<void>;
+    onGenerateSpeech?: (transcript: string, fieldPath: string) => Promise<void>;
+    isGeneratingAudio?: boolean;
 }
 
 // Helper to convert camelCase to Title Case
@@ -39,16 +44,6 @@ const toTitleCase = (str: string): string => {
         .replace(/([A-Z])/g, " $1")
         .replace(/^./, (s) => s.toUpperCase())
         .trim();
-};
-
-// Helper to check if a field is a URL field
-const isUrlField = (zodType: any): boolean => {
-    // Check if it's a string with URL validation
-    if (zodType._def?.typeName === "ZodString") {
-        const checks = zodType._def.checks || [];
-        return checks.some((check: any) => check.kind === "url");
-    }
-    return false;
 };
 
 // Helper to get field type
@@ -82,7 +77,10 @@ function renderField<T extends FieldValues>(
     zodType: any,
     form: UseFormReturn<T>,
     basePath?: string,
-    onFileSelect?: (fieldPath: string, file: File | null) => void
+    onFileSelect?: (fieldPath: string, file: File | null) => void,
+    compositionId?: string,
+    onSatelliteImageConfirm?: (googleMapsUrl: string) => Promise<void>,
+    onGenerateSpeech?: (transcript: string, fieldPath: string) => Promise<void>
 ): React.ReactNode {
     const fieldPath = basePath ? `${basePath}.${key}` : key;
     const label = toTitleCase(key);
@@ -91,6 +89,49 @@ function renderField<T extends FieldValues>(
     // Skip audio URL fields - we'll handle TTS conversion later
     if (key === "audioUrl") {
         return null;
+    }
+
+    // Skip durationInSeconds - it's automatically managed by TTS generation
+    if (key === "durationInSeconds") {
+        return null;
+    }
+
+    // Handle transcript fields with TranscriptInput component
+    if (key === "transcript" && fieldType === "ZodString") {
+        // Extract the parent path (e.g., "satDroneSection.audio" from "satDroneSection.audio.transcript")
+        const parentPath = basePath || "";
+        
+        // Get sibling fields from the audio object
+        const audioUrlPath = `${parentPath}.audioUrl` as FieldPath<T>;
+        const audioDurationPath = `${parentPath}.durationInSeconds` as FieldPath<T>;
+        
+        const audioUrl = form.watch(audioUrlPath);
+        const audioDuration = form.watch(audioDurationPath);
+
+        return (
+            <FormField
+                key={fieldPath}
+                control={form.control}
+                name={fieldPath as FieldPath<T>}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormControl>
+                            <TranscriptInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                audioUrl={audioUrl}
+                                audioDuration={audioDuration}
+                                onGenerateSpeech={onGenerateSpeech}
+                                fieldPath={fieldPath}
+                                label={label}
+                                compositionId={compositionId}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        );
     }
 
     // Handle nested objects
@@ -109,6 +150,8 @@ function renderField<T extends FieldValues>(
                             value={field.value}
                             onChange={field.onChange}
                             label={label}
+                            compositionId={compositionId}
+                            onConfirm={onSatelliteImageConfirm}
                         />
                     )}
                 />
@@ -119,7 +162,7 @@ function renderField<T extends FieldValues>(
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{label}</h3>
                 <div className="space-y-4">
                     {Object.entries(shape).map(([nestedKey, nestedType]) =>
-                        renderField(nestedKey, nestedType, form, fieldPath, onFileSelect)
+                        renderField(nestedKey, nestedType, form, fieldPath, onFileSelect, compositionId, onSatelliteImageConfirm, onGenerateSpeech)
                     )}
                 </div>
             </div>
@@ -156,7 +199,7 @@ function renderField<T extends FieldValues>(
                                         </button>
                                     </div>
                                     {Object.entries(shape).map(([nestedKey, nestedType]) =>
-                                        renderField(nestedKey, nestedType, form, `${fieldPath}.${index}`, onFileSelect)
+                                        renderField(nestedKey, nestedType, form, `${fieldPath}.${index}`, onFileSelect, compositionId, onSatelliteImageConfirm, onGenerateSpeech)
                                     )}
                                 </div>
                             );
@@ -243,6 +286,61 @@ function renderField<T extends FieldValues>(
 
     // Handle number
     if (fieldType === "ZodNumber") {
+        // Special handling for sectionDurationInSeconds - validate against audio duration
+        if (key === "sectionDurationInSeconds") {
+            // Get the audio duration from the sibling audio object
+            const parentPath = basePath || "";
+            const audioDurationPath = `${parentPath}.audio.durationInSeconds` as FieldPath<T>;
+            const audioDuration = form.watch(audioDurationPath);
+            
+            // Calculate minimum duration
+            const minDuration = audioDuration ? audioDuration + 1.0 : 0;
+            
+            return (
+                <FormField
+                    key={fieldPath}
+                    control={form.control}
+                    name={fieldPath as FieldPath<T>}
+                    rules={{
+                        validate: (value) => {
+                            if (!value) return true; // Optional field
+                            if (!audioDuration || audioDuration <= 0) return true; // No audio, no validation needed
+                            
+                            const minRequired = audioDuration + 1.0;
+                            if (value < minRequired) {
+                                return `Section duration must be at least ${minRequired.toFixed(1)} seconds (audio length + 1s buffer)`;
+                            }
+                            return true;
+                        }
+                    }}
+                    render={({ field, fieldState }) => (
+                        <FormItem>
+                            <FormLabel>{label}</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    min={minDuration}
+                                    {...field}
+                                    onChange={(e) => {
+                                        const value = parseFloat(e.target.value);
+                                        field.onChange(value);
+                                    }}
+                                    className="bg-gray-50/30 focus:bg-white transition-colors"
+                                />
+                            </FormControl>
+                            {audioDuration > 0 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Minimum: {minDuration.toFixed(1)}s (audio: {audioDuration.toFixed(1)}s + 1s buffer)
+                                </p>
+                            )}
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            );
+        }
+        
         return (
             <FormField
                 key={fieldPath}
@@ -320,6 +418,10 @@ export function SchemaFormGenerator<T extends FieldValues>({
     form,
     basePath,
     onFileSelect,
+    compositionId,
+    onSatelliteImageConfirm,
+    onGenerateSpeech,
+    isGeneratingAudio,
 }: SchemaFormGeneratorProps<T>) {
     // Get the schema shape
     const schemaType = schema as any;
@@ -348,7 +450,7 @@ export function SchemaFormGenerator<T extends FieldValues>({
                                 <div className="space-y-6">
                                     {/* Render children of the section manually to skip the wrapper div */}
                                     {Object.entries((zodType as any)._def.shape()).map(([childKey, childType]) =>
-                                        renderField(childKey, childType, form, key, onFileSelect)
+                                        renderField(childKey, childType, form, key, onFileSelect, compositionId, onSatelliteImageConfirm, onGenerateSpeech)
                                     )}
                                 </div>
                             </AccordionContent>
@@ -358,7 +460,7 @@ export function SchemaFormGenerator<T extends FieldValues>({
 
                 return (
                     <div key={key} className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
-                        {renderField(key, zodType, form, basePath, onFileSelect)}
+                        {renderField(key, zodType, form, basePath, onFileSelect, compositionId, onSatelliteImageConfirm, onGenerateSpeech)}
                     </div>
                 );
             })}

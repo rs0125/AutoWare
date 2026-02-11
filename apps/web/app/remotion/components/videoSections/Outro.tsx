@@ -1,7 +1,6 @@
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { AbsoluteFill } from "remotion";
 
 export const Outro = () => {
-  const frame = useCurrentFrame();
 
   return (
     <>

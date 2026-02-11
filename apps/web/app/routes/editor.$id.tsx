@@ -6,7 +6,6 @@ import { useParams, useNavigate } from "react-router";
 import type { Route } from "./+types/editor.$id";
 import stylesheet from "~/app.css?url";
 import {
-    DURATION_IN_FRAMES,
     COMPOSITION_FPS,
     COMPOSITION_HEIGHT,
     COMPOSITION_WIDTH,
@@ -18,9 +17,11 @@ import { Form } from "~/components/ui/form";
 import { Button } from "~/components/Button";
 import { SchemaFormGenerator } from "~/components/SchemaFormGenerator";
 import { PageErrorBoundary } from "~/components/PageErrorBoundary";
-import { getComposition, updateComposition, getBatchPresignedUrls } from "~/lib/api";
+import { LoadingOverlay } from "~/components/LoadingOverlay";
+import { getComposition, updateComposition, generateAudioFromText } from "~/lib/api";
 import { uploadBatch, UploadRequest } from "~/lib/upload";
 import { useToast } from "~/lib/toast-context";
+import { calculateSectionDuration } from "~/lib/utils";
 
 export const links: Route.LinksFunction = () => [
     { rel: "stylesheet", href: stylesheet },
@@ -106,25 +107,6 @@ const defaultValues: WarehouseVideoProps = {
     },
 };
 
-// Helper function to generate TTS audio URLs from transcripts
-// TODO: Replace with actual TTS API integration
-function transformAudioToTTS(data: any): WarehouseVideoProps {
-    const result = { ...data };
-
-    // Generate placeholder TTS URLs for each section
-    const sections = ['satDroneSection', 'locationSection', 'internalSection', 'dockingSection', 'complianceSection'];
-
-    sections.forEach(section => {
-        if (result[section]?.audio) {
-            // For now, use a placeholder. In production, this would call your TTS API
-            const transcript = result[section].audio.transcript || "";
-            result[section].audio.audioUrl = `https://tts-api.example.com/generate?text=${encodeURIComponent(transcript.substring(0, 50))}`;
-        }
-    });
-
-    return result;
-}
-
 export default function Editor() {
     return (
         <PageErrorBoundary pageName="Editor">
@@ -141,6 +123,7 @@ function EditorContent() {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [pendingUploads, setPendingUploads] = useState<Map<string, File>>(new Map());
     const [isSaving, setIsSaving] = useState(false);
+    const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
     // Initialize form with react-hook-form and zod validation
     const form = useForm<WarehouseVideoProps>({
@@ -148,6 +131,48 @@ function EditorContent() {
         defaultValues,
         mode: "onChange",
     });
+
+    // Watch audio durations to trigger validation of section durations
+    const satDroneAudioDuration = useWatch({
+        control: form.control,
+        name: "satDroneSection.audio.durationInSeconds",
+    });
+    const locationAudioDuration = useWatch({
+        control: form.control,
+        name: "locationSection.audio.durationInSeconds",
+    });
+    const internalAudioDuration = useWatch({
+        control: form.control,
+        name: "internalSection.audio.durationInSeconds",
+    });
+    const dockingAudioDuration = useWatch({
+        control: form.control,
+        name: "dockingSection.audio.durationInSeconds",
+    });
+    const complianceAudioDuration = useWatch({
+        control: form.control,
+        name: "complianceSection.audio.durationInSeconds",
+    });
+
+    // Trigger validation when audio durations change
+    useEffect(() => {
+        // Revalidate section duration fields when audio duration changes
+        const fields = [
+            "satDroneSection.sectionDurationInSeconds",
+            "locationSection.sectionDurationInSeconds",
+            "internalSection.sectionDurationInSeconds",
+            "dockingSection.sectionDurationInSeconds",
+            "complianceSection.sectionDurationInSeconds",
+        ] as const;
+
+        fields.forEach(field => {
+            const value = form.getValues(field);
+            if (value !== undefined) {
+                form.trigger(field);
+            }
+        });
+    }, [satDroneAudioDuration, locationAudioDuration, internalAudioDuration, 
+        dockingAudioDuration, complianceAudioDuration, form]);
 
     // Load project data on mount
     useEffect(() => {
@@ -163,6 +188,9 @@ function EditorContent() {
                 setIsLoading(true);
                 setLoadError(null);
                 const composition = await getComposition(id);
+                
+                console.log('Loaded composition:', composition);
+                console.log('Sat Drone audio:', composition.composition_components.satDroneSection?.audio);
                 
                 // Reset form with fetched data
                 form.reset(composition.composition_components);
@@ -192,10 +220,88 @@ function EditorContent() {
         });
     };
 
+    // Handle satellite image generation from Google Maps URL
+    const handleSatelliteImageConfirm = async (googleMapsUrl: string) => {
+        if (!id) {
+            throw new Error("No project ID available");
+        }
+
+        try {
+            const { generateSatelliteImage } = await import("~/lib/api");
+            const result = await generateSatelliteImage(id, googleMapsUrl);
+            
+            // Update the form with the new satellite image URL
+            form.setValue("satDroneSection.satelliteImageUrl", result.imageUrl);
+            
+            showSuccess("Satellite image generated", "The satellite image has been generated and saved");
+        } catch (error) {
+            console.error("Failed to generate satellite image:", error);
+            throw error;
+        }
+    };
+
+    // Handle TTS audio generation from transcript
+    const handleGenerateSpeech = async (transcript: string, fieldPath: string) => {
+        if (!id) {
+            showError("Generation failed", "No project ID available");
+            throw new Error("No project ID available");
+        }
+
+        if (!transcript || transcript.trim().length === 0) {
+            showError("Generation failed", "Transcript text is required");
+            throw new Error("Transcript text is required");
+        }
+
+        try {
+            setIsGeneratingAudio(true);
+
+            // Call TTS API
+            const result = await generateAudioFromText(id, [
+                {
+                    text: transcript,
+                    fieldPath,
+                }
+            ]);
+
+            if (!result.success || result.audioFiles.length === 0) {
+                throw new Error("Failed to generate audio");
+            }
+
+            const audioFile = result.audioFiles[0];
+
+            // Update form with audio URL and duration
+            // Extract the base path (e.g., "satDroneSection.audio" from "satDroneSection.audio.transcript")
+            const pathParts = fieldPath.split('.');
+            const audioUrlPath = [...pathParts.slice(0, -1), 'audioUrl'].join('.');
+            const durationPath = [...pathParts.slice(0, -1), 'durationInSeconds'].join('.');
+
+            form.setValue(audioUrlPath as any, audioFile.audioUrl);
+            form.setValue(durationPath as any, audioFile.durationInSeconds);
+
+            // Show success notification
+            showSuccess("Speech generated", `Audio generated successfully (${audioFile.durationInSeconds.toFixed(1)}s)`);
+            
+            setIsGeneratingAudio(false);
+        } catch (error) {
+            console.error("Failed to generate speech:", error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to generate speech";
+            showError("Generation failed", errorMessage);
+            setIsGeneratingAudio(false);
+            throw error;
+        }
+    };
+
     // Handle save project with media uploads
     const handleSaveProject = async () => {
         if (!id) {
             showError("Save failed", "No project ID available");
+            return;
+        }
+
+        // Validate form before saving
+        const isValid = await form.trigger();
+        if (!isValid) {
+            showError("Validation failed", "Please fix the validation errors before saving");
             return;
         }
 
@@ -282,9 +388,48 @@ function EditorContent() {
     });
 
     // Use formValues if available, otherwise fallback to defaultValues
-    // Transform the data to add TTS audio URLs before passing to player
-    const rawFormValues = formValues as WarehouseVideoProps || defaultValues;
-    const playerInputProps: WarehouseVideoProps = transformAudioToTTS(rawFormValues);
+    const playerInputProps: WarehouseVideoProps = (formValues as WarehouseVideoProps) || defaultValues;
+
+    // Calculate dynamic video duration based on audio durations with padding
+    const calculateDuration = (props: WarehouseVideoProps): number => {
+        const fps = COMPOSITION_FPS;
+        const introDuration = 5 * fps;
+        const outroDuration = 5 * fps;
+        
+        // Calculate each section duration using actual audio durations and padding
+        const satDroneCalc = calculateSectionDuration(
+            props.satDroneSection.audio.durationInSeconds || 0,
+            props.satDroneSection.sectionDurationInSeconds
+        );
+        const locationCalc = calculateSectionDuration(
+            props.locationSection.audio.durationInSeconds || 0,
+            props.locationSection.sectionDurationInSeconds
+        );
+        const internalCalc = calculateSectionDuration(
+            props.internalSection.audio.durationInSeconds || 0,
+            props.internalSection.sectionDurationInSeconds
+        );
+        const dockingCalc = calculateSectionDuration(
+            props.dockingSection.audio.durationInSeconds || 0,
+            props.dockingSection.sectionDurationInSeconds
+        );
+        const complianceCalc = calculateSectionDuration(
+            props.complianceSection.audio.durationInSeconds || 0,
+            props.complianceSection.sectionDurationInSeconds
+        );
+        
+        // Use actual duration (which includes padding) for each section
+        const satDroneDuration = satDroneCalc.actualDuration * fps;
+        const locationDuration = locationCalc.actualDuration * fps;
+        const internalDuration = internalCalc.actualDuration * fps;
+        const dockingDuration = dockingCalc.actualDuration * fps;
+        const complianceDuration = complianceCalc.actualDuration * fps;
+        
+        return introDuration + satDroneDuration + locationDuration + internalDuration + 
+               dockingDuration + complianceDuration + outroDuration;
+    };
+
+    const videoDuration = calculateDuration(playerInputProps);
 
     // Show loading state while fetching project
     if (isLoading) {
@@ -321,6 +466,11 @@ function EditorContent() {
     // Split-Screen Editor View
     return (
         <div className="h-screen overflow-hidden bg-gray-50">
+            {/* Loading Overlay for TTS Generation */}
+            {isGeneratingAudio && (
+                <LoadingOverlay message="Generating speech..." />
+            )}
+
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10 w-full">
                 <div className="flex items-center justify-between w-full">
@@ -366,7 +516,7 @@ function EditorContent() {
                         <Player
                             component={Main}
                             inputProps={playerInputProps}
-                            durationInFrames={DURATION_IN_FRAMES}
+                            durationInFrames={videoDuration}
                             fps={COMPOSITION_FPS}
                             compositionHeight={COMPOSITION_HEIGHT}
                             compositionWidth={COMPOSITION_WIDTH}
@@ -389,6 +539,10 @@ function EditorContent() {
                                     schema={CompositionProps}
                                     form={form}
                                     onFileSelect={handleFileSelect}
+                                    compositionId={id}
+                                    onSatelliteImageConfirm={handleSatelliteImageConfirm}
+                                    onGenerateSpeech={handleGenerateSpeech}
+                                    isGeneratingAudio={isGeneratingAudio}
                                 />
                             </form>
                         </Form>

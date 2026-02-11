@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
+import { Button } from "./Button";
 import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from "./ui/form";
 
 interface GoogleMapsInputProps {
     value?: { lat: number; lng: number };
     onChange: (value: { lat: number; lng: number }) => void;
+    onConfirm?: (googleMapsUrl: string) => Promise<void>;
     label?: string;
+    compositionId?: string;
 }
 
 // Extract lat/lng from various Google Maps URL formats
@@ -51,9 +54,11 @@ function extractLatLngFromMapsUrl(url: string): { lat: number; lng: number } | n
     return null;
 }
 
-export function GoogleMapsInput({ value, onChange, label = "Location" }: GoogleMapsInputProps) {
+export function GoogleMapsInput({ value, onChange, onConfirm, label = "Location", compositionId }: GoogleMapsInputProps) {
     const [mapsUrl, setMapsUrl] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [hasChanged, setHasChanged] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     // Generate Google Maps URL from lat/lng on component mount
     useEffect(() => {
@@ -65,6 +70,7 @@ export function GoogleMapsInput({ value, onChange, label = "Location" }: GoogleM
     const handleUrlChange = (url: string) => {
         setMapsUrl(url);
         setError(null);
+        setHasChanged(true);
 
         if (!url) {
             onChange({ lat: 0, lng: 0 });
@@ -80,17 +86,46 @@ export function GoogleMapsInput({ value, onChange, label = "Location" }: GoogleM
         }
     };
 
+    const handleConfirm = async () => {
+        if (!onConfirm || !mapsUrl || !compositionId) return;
+
+        try {
+            setIsConfirming(true);
+            setError(null);
+            await onConfirm(mapsUrl);
+            setHasChanged(false);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to generate satellite image";
+            setError(errorMessage);
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
     return (
         <FormItem>
             <FormLabel>{label}</FormLabel>
             <FormControl>
                 <div className="space-y-2">
-                    <Input
-                        type="url"
-                        placeholder="https://www.google.com/maps/@28.4744,77.5040,15z"
-                        value={mapsUrl}
-                        onChange={(e) => handleUrlChange(e.target.value)}
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            type="url"
+                            placeholder="https://www.google.com/maps/@28.4744,77.5040,15z"
+                            value={mapsUrl}
+                            onChange={(e) => handleUrlChange(e.target.value)}
+                            className="flex-1"
+                        />
+                        {hasChanged && onConfirm && compositionId && (
+                            <Button
+                                type="button"
+                                onClick={handleConfirm}
+                                disabled={isConfirming || !!error}
+                                loading={isConfirming}
+                            >
+                                {isConfirming ? "Confirming..." : "Confirm"}
+                            </Button>
+                        )}
+                    </div>
                     {value && value.lat !== 0 && value.lng !== 0 && (
                         <FormDescription className="text-xs text-green-600">
                             ✓ Coordinates: {value.lat.toFixed(4)}, {value.lng.toFixed(4)}

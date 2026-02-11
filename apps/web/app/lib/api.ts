@@ -218,3 +218,115 @@ export const getBatchPresignedUrls = async (
     body: JSON.stringify(request),
   });
 };
+
+/**
+ * Generate satellite image from Google Maps URL
+ * @param compositionId - The UUID of the composition
+ * @param googleMapsUrl - Google Maps URL containing coordinates
+ * @returns Object with imageUrl, key, and coordinates
+ */
+export const generateSatelliteImage = async (
+  compositionId: string,
+  googleMapsUrl: string,
+): Promise<{ imageUrl: string; key: string; coordinates: { lat: number; lng: number } }> => {
+  return fetchRequest<{ imageUrl: string; key: string; coordinates: { lat: number; lng: number } }>(
+    '/api/maps/satellite-image',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        compositionId,
+        googleMapsUrl,
+        updateComposition: true,
+        fieldPath: 'satDroneSection.satelliteImageUrl',
+      }),
+    }
+  );
+};
+
+// TTS API Types
+export interface GenerateAudioRequest {
+  compositionId: string;
+  transcripts: Array<{
+    text: string;
+    fieldPath: string;
+    voice?: string;
+  }>;
+  updateComposition?: boolean;
+}
+
+export interface GenerateAudioResponse {
+  success: boolean;
+  audioFiles: Array<{
+    fieldPath: string;
+    audioUrl: string;
+    key: string;
+    durationInSeconds: number;
+  }>;
+  compositionUpdated?: boolean;
+}
+
+/**
+ * Generate audio from text using TTS with timeout handling
+ * @param compositionId - The UUID of the composition
+ * @param transcripts - Array of transcript objects with text and fieldPath
+ * @param timeoutMs - Timeout in milliseconds (default: 30000ms = 30s)
+ * @returns Object with success status and audio files
+ * @throws Error if request times out or fails
+ */
+export const generateAudioFromText = async (
+  compositionId: string,
+  transcripts: Array<{ text: string; fieldPath: string; voice?: string }>,
+  timeoutMs: number = 30000,
+): Promise<GenerateAudioResponse> => {
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const result = await fetch('/api/tts/generate-audio', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        compositionId,
+        transcripts,
+        updateComposition: true,
+      } as GenerateAudioRequest),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!result.ok) {
+      const error = await result.json().catch(() => ({ error: 'Request failed' }));
+      const errorMessage = error.error || error.message || `Request failed with status ${result.status}`;
+      
+      if (result.status === 404) {
+        throw new Error(`Project not found: ${errorMessage}`);
+      } else if (result.status === 400) {
+        throw new Error(`Invalid request: ${errorMessage}`);
+      } else if (result.status >= 500) {
+        throw new Error(`Server error: ${errorMessage}`);
+      } else {
+        throw new Error(`Failed to generate speech: ${errorMessage}`);
+      }
+    }
+
+    return result.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Handle abort/timeout errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out: TTS generation is taking longer than expected. Please try again.');
+    }
+    
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Network error: Unable to connect to TTS service');
+    }
+    
+    throw error;
+  }
+};

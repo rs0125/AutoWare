@@ -1,19 +1,25 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio } from "remotion";
 import { satdroneModel } from "~/remotion/models/satdrone";
 
-export const SatDrone: React.FC<satdroneModel> = ({ latitude, longitude, dronevideourl }) => {
+export const SatDrone: React.FC<satdroneModel> = ({ 
+  latitude, 
+  longitude, 
+  dronevideourl, 
+  satimageurl,
+  audio,
+  startPaddingInSeconds = 0,
+}) => {
   const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
+  const { durationInFrames, fps } = useVideoConfig();
 
-  // Generate Google Maps Static API URL for satellite imagery
-  // Note: In production, you should use a proper API key
-  const satelliteImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=17&size=1920x1080&maptype=satellite&key=YOUR_API_KEY`;
+  // Use provided satellite image URL if available, otherwise fallback to Google Maps Static API
+  const satelliteImageUrl = satimageurl || `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=17&size=1920x1080&maptype=satellite&key=YOUR_API_KEY`;
 
-  // Interpolate zoom from 0.5x to 1x over the duration of the section
+  // Interpolate zoom from 2x to 1x (zoom out effect) over the duration of the section
   const scale = interpolate(
     frame,
     [0, durationInFrames],
-    [0.5, 1],
+    [2, 1],
     {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -65,6 +71,47 @@ export const SatDrone: React.FC<satdroneModel> = ({ latitude, longitude, dronevi
             }}
           >
             {/* Drone video would go here */}
+          </AbsoluteFill>
+        )}
+
+        {/* Audio Layer */}
+        {audio?.audioUrl && (
+          <Audio 
+            src={audio.audioUrl}
+          />
+        )}
+
+        {/* Subtitle Layer */}
+        {audio?.transcript && (
+          <AbsoluteFill
+            style={{
+              justifyContent: "flex-end",
+              alignItems: "center",
+              paddingBottom: 50,
+              textShadow: "0px 2px 4px rgba(0,0,0,0.8)",
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                padding: "10px 20px",
+                borderRadius: "10px",
+                maxWidth: "80%",
+              }}
+            >
+              <p
+                style={{
+                  color: "white",
+                  fontSize: 32,
+                  fontFamily: "Inter, sans-serif",
+                  textAlign: "center",
+                  fontWeight: "bold",
+                  margin: 0,
+                }}
+              >
+                {audio.transcript}
+              </p>
+            </div>
           </AbsoluteFill>
         )}
       </AbsoluteFill>

@@ -10,6 +10,7 @@ const TTSRequestSchema = z.object({
       text: z.string().min(1),
       fieldPath: z.string(),
       voice: z.enum(['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']).optional(),
+      speed: z.number().min(0.25).max(4.0).optional(),
     })
   ),
   updateComposition: z.boolean().optional().default(true),
@@ -33,25 +34,24 @@ export const generateAudioHandler = async (req: Request, res: Response) => {
 
     // Optionally update composition with audio URLs
     if (updateComposition) {
-      const urlMappings: Record<string, string> = {};
-      const durationMappings: Record<string, number> = {};
+      const urlMappings: Record<string, any> = {};
 
-      results.forEach((result) => {
-        urlMappings[result.fieldPath] = result.audioUrl;
-        // Also update duration if the fieldPath is for audio.audioUrl
-        if (result.fieldPath.endsWith('.audioUrl')) {
-          const durationPath = result.fieldPath.replace('.audioUrl', '.durationInSeconds');
-          durationMappings[durationPath] = result.durationInSeconds;
-        }
+      results.forEach((result, index) => {
+        // The fieldPath from the request is the transcript path (e.g., "satDroneSection.audio.transcript")
+        // We need to update audioUrl, durationInSeconds, AND transcript
+        const pathParts = result.fieldPath.split('.');
+        const basePath = pathParts.slice(0, -1).join('.'); // Remove "transcript" to get "satDroneSection.audio"
+        
+        const audioUrlPath = `${basePath}.audioUrl`;
+        const durationPath = `${basePath}.durationInSeconds`;
+        const transcriptPath = result.fieldPath; // Keep the full path for transcript
+        
+        urlMappings[audioUrlPath] = result.audioUrl;
+        urlMappings[durationPath] = result.durationInSeconds;
+        urlMappings[transcriptPath] = transcripts[index].text; // Save the transcript text!
       });
 
-      // Merge both URL and duration mappings, converting numbers to strings for updateMediaUrls
-      const allMappings: Record<string, any> = { ...urlMappings };
-      Object.entries(durationMappings).forEach(([key, value]) => {
-        allMappings[key] = value;
-      });
-
-      await updateMediaUrls(compositionId, allMappings);
+      await updateMediaUrls(compositionId, urlMappings);
     }
 
     res.status(200).json({

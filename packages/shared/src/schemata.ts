@@ -46,6 +46,9 @@ export const SatDroneSchema = z.object({
 
   // ✅ Audio is now a core part of the section
   audio: AudioMetaSchema,
+  
+  // Optional section duration override (must be >= audio duration + 1s)
+  sectionDurationInSeconds: z.number().positive().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -64,6 +67,9 @@ export const LocationHighlightSchema = z.object({
 
   // ✅ Audio for this section
   audio: AudioMetaSchema,
+  
+  // Optional section duration override (must be >= audio duration + 1s)
+  sectionDurationInSeconds: z.number().positive().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -88,6 +94,9 @@ export const InternalStorageSchema = z.object({
 
   // ✅ Audio for this section
   audio: AudioMetaSchema,
+  
+  // Optional section duration override (must be >= audio duration + 1s)
+  sectionDurationInSeconds: z.number().positive().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -99,6 +108,9 @@ export const ExternalDockingSchema = z.object({
 
   // ✅ Audio for this section
   audio: AudioMetaSchema,
+  
+  // Optional section duration override (must be >= audio duration + 1s)
+  sectionDurationInSeconds: z.number().positive().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -112,6 +124,9 @@ export const ComplianceSchema = z.object({
 
   // ✅ Audio for this section
   audio: AudioMetaSchema,
+  
+  // Optional section duration override (must be >= audio duration + 1s)
+  sectionDurationInSeconds: z.number().positive().optional(),
 });
 
 // ---------------------------------------------------------------------------

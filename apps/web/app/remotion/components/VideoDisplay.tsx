@@ -7,6 +7,7 @@ interface VideoDisplayProps {
     transcript?: string;
     placeholderText?: string;
     durationInFrames?: number; // Optional, might be useful if we want to force specific duration logic
+    startPaddingInSeconds?: number; // Padding before audio starts
 }
 
 export const VideoDisplay: React.FC<VideoDisplayProps> = ({
@@ -14,8 +15,9 @@ export const VideoDisplay: React.FC<VideoDisplayProps> = ({
     audioUrl,
     transcript,
     placeholderText = "Video not added",
+    startPaddingInSeconds = 0,
 }) => {
-    /* const { fps } = useVideoConfig(); */
+    const { fps } = useVideoConfig();
 
     return (
         <AbsoluteFill style={{ backgroundColor: "black" }}>
@@ -44,7 +46,11 @@ export const VideoDisplay: React.FC<VideoDisplayProps> = ({
             )}
 
             {/* 2. Audio Layer */}
-            {audioUrl && <Audio src={audioUrl} />}
+            {audioUrl && (
+                <Audio 
+                    src={audioUrl}
+                />
+            )}
 
             {/* 3. Subtitle Layer */}
             {transcript && (
