@@ -62,27 +62,37 @@ const defaultValues: WarehouseVideoProps = {
             transcript: "Located just 2 kilometers from NH-24 highway and 5 kilometers from Noida Metro Station.",
         },
     },
-    internalSection: {
-        wideShotVideoUrl: "",
+    internalWideShotSection: {
+        videoUrl: "",
         specs: {
             clearHeight: "12 meters",
             flooringType: "Anti-skid epoxy",
             hasVentilation: true,
             hasInsulation: true,
         },
-        internalDockVideoUrl: "",
-        utilities: {
-            videoUrl: "",
-            featuresPresent: [
-                "security_room",
-                "canteen",
-                "washrooms",
-                "fire_pump_room",
-            ],
-        },
         audio: {
-            durationInSeconds: 15,
-            transcript: "The warehouse features 12-meter clear height with anti-skid epoxy flooring, complete with ventilation and insulation.",
+            durationInSeconds: 5,
+            transcript: "The warehouse features 12-meter clear height with anti-skid epoxy flooring.",
+        },
+    },
+    internalDockSection: {
+        videoUrl: "",
+        audio: {
+            durationInSeconds: 5,
+            transcript: "Internal docking facilities for efficient loading operations.",
+        },
+    },
+    internalUtilitiesSection: {
+        videoUrl: "",
+        featuresPresent: [
+            "security_room",
+            "canteen",
+            "washrooms",
+            "fire_pump_room",
+        ],
+        audio: {
+            durationInSeconds: 5,
+            transcript: "Complete with security room, canteen, washrooms, and fire safety systems.",
         },
     },
     dockingSection: {
@@ -141,9 +151,17 @@ function EditorContent() {
         control: form.control,
         name: "locationSection.audio.durationInSeconds",
     });
-    const internalAudioDuration = useWatch({
+    const internalWideShotAudioDuration = useWatch({
         control: form.control,
-        name: "internalSection.audio.durationInSeconds",
+        name: "internalWideShotSection.audio.durationInSeconds",
+    });
+    const internalDockAudioDuration = useWatch({
+        control: form.control,
+        name: "internalDockSection.audio.durationInSeconds",
+    });
+    const internalUtilitiesAudioDuration = useWatch({
+        control: form.control,
+        name: "internalUtilitiesSection.audio.durationInSeconds",
     });
     const dockingAudioDuration = useWatch({
         control: form.control,
@@ -160,7 +178,9 @@ function EditorContent() {
         const fields = [
             "satDroneSection.sectionDurationInSeconds",
             "locationSection.sectionDurationInSeconds",
-            "internalSection.sectionDurationInSeconds",
+            "internalWideShotSection.sectionDurationInSeconds",
+            "internalDockSection.sectionDurationInSeconds",
+            "internalUtilitiesSection.sectionDurationInSeconds",
             "dockingSection.sectionDurationInSeconds",
             "complianceSection.sectionDurationInSeconds",
         ] as const;
@@ -171,8 +191,8 @@ function EditorContent() {
                 form.trigger(field);
             }
         });
-    }, [satDroneAudioDuration, locationAudioDuration, internalAudioDuration, 
-        dockingAudioDuration, complianceAudioDuration, form]);
+    }, [satDroneAudioDuration, locationAudioDuration, internalWideShotAudioDuration, 
+        internalDockAudioDuration, internalUtilitiesAudioDuration, dockingAudioDuration, complianceAudioDuration, form]);
 
     // Load project data on mount
     useEffect(() => {
@@ -192,8 +212,51 @@ function EditorContent() {
                 console.log('Loaded composition:', composition);
                 console.log('Sat Drone audio:', composition.composition_components.satDroneSection?.audio);
                 
+                // Migrate old internalSection structure to new 3-section structure
+                let compositionData = composition.composition_components;
+                if (compositionData.internalSection && !compositionData.internalWideShotSection) {
+                    // Old structure detected - migrate to new structure
+                    const oldInternal = compositionData.internalSection as any;
+                    compositionData = {
+                        ...compositionData,
+                        internalWideShotSection: {
+                            videoUrl: oldInternal.wideShotVideoUrl || "",
+                            specs: oldInternal.specs || {
+                                clearHeight: "",
+                                flooringType: "",
+                                hasVentilation: false,
+                                hasInsulation: false,
+                            },
+                            audio: {
+                                audioUrl: oldInternal.audio?.audioUrl || "",
+                                durationInSeconds: oldInternal.audio?.durationInSeconds || 5,
+                                transcript: oldInternal.audio?.transcript || "",
+                            },
+                        },
+                        internalDockSection: {
+                            videoUrl: oldInternal.internalDockVideoUrl || "",
+                            audio: {
+                                audioUrl: "",
+                                durationInSeconds: 5,
+                                transcript: "",
+                            },
+                        },
+                        internalUtilitiesSection: {
+                            videoUrl: oldInternal.utilities?.videoUrl || "",
+                            featuresPresent: oldInternal.utilities?.featuresPresent || [],
+                            audio: {
+                                audioUrl: "",
+                                durationInSeconds: 5,
+                                transcript: "",
+                            },
+                        },
+                    };
+                    // Remove old internalSection
+                    delete (compositionData as any).internalSection;
+                }
+                
                 // Reset form with fetched data
-                form.reset(composition.composition_components);
+                form.reset(compositionData);
                 setIsLoading(false);
             } catch (error) {
                 console.error("Failed to load project:", error);
@@ -410,10 +473,20 @@ function EditorContent() {
             props.locationSection.sectionDurationInSeconds
         );
         
-        const internalCalc = calculateSectionDuration(
-            props.internalSection.audio.durationInSeconds || 0,
-            props.internalSection.sectionDurationInSeconds
+        // Three separate internal sections
+        const internalWideShotCalc = calculateSectionDuration(
+            props.internalWideShotSection.audio.durationInSeconds || 0,
+            props.internalWideShotSection.sectionDurationInSeconds
         );
+        const internalDockCalc = calculateSectionDuration(
+            props.internalDockSection.audio.durationInSeconds || 0,
+            props.internalDockSection.sectionDurationInSeconds
+        );
+        const internalUtilitiesCalc = calculateSectionDuration(
+            props.internalUtilitiesSection.audio.durationInSeconds || 0,
+            props.internalUtilitiesSection.sectionDurationInSeconds
+        );
+        
         const dockingCalc = calculateSectionDuration(
             props.dockingSection.audio.durationInSeconds || 0,
             props.dockingSection.sectionDurationInSeconds
@@ -426,12 +499,14 @@ function EditorContent() {
         // Use actual duration (which includes padding) for each section
         const satDroneDuration = satDroneCalc.actualDuration * fps;
         const locationDuration = locationCalc.actualDuration * fps;
-        const internalDuration = internalCalc.actualDuration * fps;
+        const internalWideShotDuration = internalWideShotCalc.actualDuration * fps;
+        const internalDockDuration = internalDockCalc.actualDuration * fps;
+        const internalUtilitiesDuration = internalUtilitiesCalc.actualDuration * fps;
         const dockingDuration = dockingCalc.actualDuration * fps;
         const complianceDuration = complianceCalc.actualDuration * fps;
         
-        return introDuration + satDroneDuration + locationDuration + internalDuration + 
-               dockingDuration + complianceDuration + outroDuration;
+        return introDuration + satDroneDuration + locationDuration + internalWideShotDuration + 
+               internalDockDuration + internalUtilitiesDuration + dockingDuration + complianceDuration + outroDuration;
     };
 
     const videoDuration = calculateDuration(playerInputProps);
@@ -514,7 +589,7 @@ function EditorContent() {
             </div>
 
             {/* Split Screen Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-0 h-[calc(100vh-73px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-0 h-[calc(100vh-73px)] overflow-hidden">
                 {/* Left Panel: Remotion Player */}
                 <div className="bg-gray-50 flex items-center justify-center p-4 overflow-hidden border-r-2 border-black">
                     <div className="w-full max-w-full">
@@ -536,7 +611,7 @@ function EditorContent() {
                 </div>
 
                 {/* Right Panel: Editable Form */}
-                <div className="bg-white overflow-y-auto p-6">
+                <div className="bg-white overflow-y-auto overflow-x-hidden p-6">
                     <div className="max-w-3xl mx-auto">
                         <Form {...form}>
                             <form className="space-y-6">

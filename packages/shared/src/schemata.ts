@@ -75,10 +75,10 @@ export const LocationHighlightSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Section 3: Internal Storage
+// Section 3A: Internal Wide Shot
 // ---------------------------------------------------------------------------
-export const InternalStorageSchema = z.object({
-  wideShotVideoUrl: MediaUrl,
+export const InternalWideShotSchema = z.object({
+  videoUrl: MediaUrl,
   specs: z.object({
     clearHeight: z.string(),
     flooringType: z.string(),
@@ -86,18 +86,28 @@ export const InternalStorageSchema = z.object({
     hasInsulation: z.boolean(),
     rackingType: z.string().optional(),
   }),
-  internalDockVideoUrl: MediaUrl,
-  utilities: z.object({
-    videoUrl: MediaUrl,
-    featuresPresent: z.array(
-      z.enum(["security_room", "canteen", "washrooms", "fire_pump_room", "driver_rest_area"])
-    ),
-  }),
-
-  // ✅ Audio for this section
   audio: AudioMetaSchema,
-  
-  // Optional section duration override (must be >= audio duration + 1s)
+  sectionDurationInSeconds: z.number().positive().optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Section 3B: Internal Dock
+// ---------------------------------------------------------------------------
+export const InternalDockSchema = z.object({
+  videoUrl: MediaUrl,
+  audio: AudioMetaSchema,
+  sectionDurationInSeconds: z.number().positive().optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Section 3C: Internal Utilities
+// ---------------------------------------------------------------------------
+export const InternalUtilitiesSchema = z.object({
+  videoUrl: MediaUrl,
+  featuresPresent: z.array(
+    z.enum(["security_room", "canteen", "washrooms", "fire_pump_room", "driver_rest_area"])
+  ),
+  audio: AudioMetaSchema,
   sectionDurationInSeconds: z.number().positive().optional(),
 });
 
@@ -143,7 +153,9 @@ export const CompositionProps = z.object({
   // The Video Sections
   satDroneSection: SatDroneSchema,
   locationSection: LocationHighlightSchema,
-  internalSection: InternalStorageSchema,
+  internalWideShotSection: InternalWideShotSchema,
+  internalDockSection: InternalDockSchema,
+  internalUtilitiesSection: InternalUtilitiesSchema,
   dockingSection: ExternalDockingSchema,
   complianceSection: ComplianceSchema,
 });

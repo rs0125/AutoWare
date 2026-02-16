@@ -97,6 +97,11 @@ function renderField<T extends FieldValues>(
         return null;
     }
 
+    // Skip satelliteImageUrl - it's automatically generated from Google Maps URL
+    if (key === "satelliteImageUrl") {
+        return null;
+    }
+
     // Handle transcript fields with TranscriptInput component
     if (key === "transcript" && fieldType === "ZodString") {
         // Extract the parent path (e.g., "satDroneSection.audio" from "satDroneSection.audio.transcript")
@@ -322,9 +327,11 @@ function renderField<T extends FieldValues>(
                                     type="number"
                                     step="0.1"
                                     min={minDuration}
+                                    placeholder={minDuration > 0 ? `Default: ${minDuration.toFixed(1)}s` : "Optional"}
                                     {...field}
+                                    value={field.value || ''}
                                     onChange={(e) => {
-                                        const value = parseFloat(e.target.value);
+                                        const value = e.target.value ? parseFloat(e.target.value) : undefined;
                                         field.onChange(value);
                                     }}
                                     className="bg-gray-50/30 focus:bg-white transition-colors"
@@ -335,6 +342,41 @@ function renderField<T extends FieldValues>(
                                     Minimum: {minDuration.toFixed(1)}s (audio: {audioDuration.toFixed(1)}s + 1s buffer)
                                 </p>
                             )}
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            );
+        }
+        
+        // Special handling for video duration fields
+        if (key.toLowerCase().includes('duration')) {
+            return (
+                <FormField
+                    key={fieldPath}
+                    control={form.control}
+                    name={fieldPath as FieldPath<T>}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{label}</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    min={0}
+                                    placeholder="0 (seconds)"
+                                    {...field}
+                                    value={field.value || ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value ? parseFloat(e.target.value) : 0;
+                                        field.onChange(value);
+                                    }}
+                                    className="bg-gray-50/30 focus:bg-white transition-colors"
+                                />
+                            </FormControl>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Current: {field.value || 0} seconds
+                            </p>
                             <FormMessage />
                         </FormItem>
                     )}

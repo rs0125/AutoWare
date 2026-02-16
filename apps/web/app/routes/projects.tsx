@@ -67,8 +67,8 @@ function ProjectsPageContent() {
             transcript: "",
           },
         },
-        internalSection: {
-          wideShotVideoUrl: "",
+        internalWideShotSection: {
+          videoUrl: "",
           specs: {
             clearHeight: "",
             flooringType: "",
@@ -76,11 +76,23 @@ function ProjectsPageContent() {
             hasInsulation: false,
             rackingType: "",
           },
-          internalDockVideoUrl: "",
-          utilities: {
-            videoUrl: "",
-            featuresPresent: [],
+          audio: {
+            audioUrl: "",
+            durationInSeconds: 5,
+            transcript: "",
           },
+        },
+        internalDockSection: {
+          videoUrl: "",
+          audio: {
+            audioUrl: "",
+            durationInSeconds: 5,
+            transcript: "",
+          },
+        },
+        internalUtilitiesSection: {
+          videoUrl: "",
+          featuresPresent: [],
           audio: {
             audioUrl: "",
             durationInSeconds: 5,
