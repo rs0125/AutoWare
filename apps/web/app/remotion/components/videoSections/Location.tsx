@@ -1,6 +1,6 @@
 import { LocationHighlightSchema } from "@repo/shared";
 import { z } from "zod";
-import { AbsoluteFill, Audio } from "remotion";
+import { AbsoluteFill, Audio, Img } from "remotion";
 
 export const LocationVid: React.FC<z.infer<typeof LocationHighlightSchema> & { startPaddingInSeconds?: number; satelliteImageUrl?: string }> = (props) => {
   return (
@@ -15,7 +15,7 @@ export const LocationVid: React.FC<z.infer<typeof LocationHighlightSchema> & { s
               alignItems: "center",
             }}
           >
-            <img
+            <Img
               src={props.satelliteImageUrl}
               alt="Location satellite view"
               style={{

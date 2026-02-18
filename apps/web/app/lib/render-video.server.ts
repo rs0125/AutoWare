@@ -5,7 +5,7 @@ import {
 import type { RenderResponse } from "./types";
 import { z } from "zod";
 import { CompositionProps } from "~/remotion/schemata";
-import { DISK, RAM, REGION, TIMEOUT } from "~/remotion/constants.mjs";
+import { COMPOSITION_HEIGHT, COMPOSITION_WIDTH, DISK, RAM, REGION, TIMEOUT } from "~/remotion/constants.mjs";
 
 export const renderVideo = async ({
   serveUrl,
@@ -48,6 +48,12 @@ export const renderVideo = async ({
     composition,
     inputProps,
     codec: "h264",
+    framesPerLambda: 80,
+    maxRetries: 1,
+    concurrencyPerLambda: 2,
+    timeoutInMilliseconds: 120000, // 2 minutes - fail faster to see the error
+    forceHeight: COMPOSITION_HEIGHT,
+    forceWidth: COMPOSITION_WIDTH,
     downloadBehavior: {
       type: "download",
       fileName: outName,

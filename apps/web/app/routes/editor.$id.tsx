@@ -22,6 +22,8 @@ import { getComposition, updateComposition, generateAudioFromText } from "~/lib/
 import { uploadBatch, UploadRequest } from "~/lib/upload";
 import { useToast } from "~/lib/toast-context";
 import { calculateSectionDuration } from "~/lib/utils";
+import { useRendering } from "~/lib/use-rendering";
+import { COMPOSITION_ID } from "~/remotion/constants.mjs";
 
 export const links: Route.LinksFunction = () => [
     { rel: "stylesheet", href: stylesheet },
@@ -147,6 +149,9 @@ function EditorContent() {
     const [pendingUploads, setPendingUploads] = useState<Map<string, File>>(new Map());
     const [isSaving, setIsSaving] = useState(false);
     const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+    const [showRenderConfirm, setShowRenderConfirm] = useState(false);
+    const [isSavingForRender, setIsSavingForRender] = useState(false);
+    const [triggerRender, setTriggerRender] = useState(false);
 
     // Initialize form with react-hook-form and zod validation
     const form = useForm<WarehouseVideoProps>({
@@ -154,6 +159,25 @@ function EditorContent() {
         defaultValues,
         mode: "onChange",
     });
+
+    // Watch form values for rendering
+    const formValues = useWatch({
+        control: form.control,
+    });
+
+    // Use formValues if available, otherwise fallback to defaultValues
+    const playerInputProps: WarehouseVideoProps = (formValues as WarehouseVideoProps) || defaultValues;
+
+    // Initialize rendering hook
+    const { renderMedia, state: renderState, undo: undoRender } = useRendering(COMPOSITION_ID, playerInputProps);
+
+    // Deferred render trigger: wait for React to re-render with updated form values
+    useEffect(() => {
+        if (triggerRender) {
+            setTriggerRender(false);
+            renderMedia();
+        }
+    }, [triggerRender, renderMedia]);
 
     // Watch audio durations to trigger validation of section durations
     const satDroneAudioDuration = useWatch({
@@ -204,7 +228,7 @@ function EditorContent() {
                 form.trigger(field);
             }
         });
-    }, [satDroneAudioDuration, locationAudioDuration, internalWideShotAudioDuration, 
+    }, [satDroneAudioDuration, locationAudioDuration, internalWideShotAudioDuration,
         internalDockAudioDuration, internalUtilitiesAudioDuration, dockingAudioDuration, complianceAudioDuration, form]);
 
     // Load project data on mount
@@ -221,15 +245,15 @@ function EditorContent() {
                 setIsLoading(true);
                 setLoadError(null);
                 const composition = await getComposition(id);
-                
+
                 console.log('Loaded composition:', composition);
                 console.log('Sat Drone audio:', composition.composition_components.satDroneSection?.audio);
-                
+
                 // Migrate old internalSection structure to new 3-section structure
                 let compositionData = composition.composition_components;
-                
+
                 // Migrate old approach road structure
-                if (compositionData.locationSection && 
+                if (compositionData.locationSection &&
                     (compositionData.locationSection as any).approachRoadVideoUrl !== undefined &&
                     !compositionData.approachRoadSection) {
                     const oldLocation = compositionData.locationSection as any;
@@ -255,7 +279,7 @@ function EditorContent() {
                         },
                     };
                 }
-                
+
                 // Ensure approachRoadSection exists
                 if (!compositionData.approachRoadSection) {
                     compositionData = {
@@ -271,7 +295,7 @@ function EditorContent() {
                         },
                     };
                 }
-                
+
                 if ((compositionData as any).internalSection && !compositionData.internalWideShotSection) {
                     // Old structure detected - migrate to new structure
                     const oldInternal = (compositionData as any).internalSection;
@@ -315,7 +339,7 @@ function EditorContent() {
                     // Remove old internalSection
                     delete (compositionData as any).internalSection;
                 }
-                
+
                 // Reset form with fetched data
                 form.reset(compositionData);
                 setIsLoading(false);
@@ -353,10 +377,10 @@ function EditorContent() {
         try {
             const { generateSatelliteImage } = await import("~/lib/api");
             const result = await generateSatelliteImage(id, googleMapsUrl);
-            
+
             // Update the form with the new satellite image URL
             form.setValue("satDroneSection.satelliteImageUrl", result.imageUrl);
-            
+
             showSuccess("Satellite image generated", "The satellite image has been generated and saved");
         } catch (error) {
             console.error("Failed to generate satellite image:", error);
@@ -404,7 +428,7 @@ function EditorContent() {
 
             // Show success notification
             showSuccess("Speech generated", `Audio generated successfully (${audioFile.durationInSeconds.toFixed(1)}s)`);
-            
+
             setIsGeneratingAudio(false);
         } catch (error) {
             console.error("Failed to generate speech:", error);
@@ -438,7 +462,7 @@ function EditorContent() {
             // If there are pending uploads, handle them first
             if (pendingUploads.size > 0) {
                 showWarning("Uploading files", `Uploading ${pendingUploads.size} file(s)...`);
-                
+
                 // Prepare upload requests
                 const uploadRequests: UploadRequest[] = Array.from(pendingUploads.entries()).map(([fieldPath, file]) => {
                     // Determine media type from field name
@@ -473,7 +497,7 @@ function EditorContent() {
                         // Set the value in the form data using the field path
                         const pathParts = result.fieldPath.split('.');
                         let current: any = formData;
-                        
+
                         // Navigate to the parent object
                         for (let i = 0; i < pathParts.length - 1; i++) {
                             if (!current[pathParts[i]]) {
@@ -481,7 +505,7 @@ function EditorContent() {
                             }
                             current = current[pathParts[i]];
                         }
-                        
+
                         // Set the final value
                         current[pathParts[pathParts.length - 1]] = result.publicUrl;
                     }
@@ -496,7 +520,7 @@ function EditorContent() {
 
             // Show success notification
             showSuccess("Project saved", "Your changes have been saved successfully");
-            
+
             setIsSaving(false);
         } catch (error) {
             console.error("Failed to save project:", error);
@@ -506,36 +530,108 @@ function EditorContent() {
         }
     };
 
-    // Watch form values for real-time preview
-    const formValues = useWatch({
-        control: form.control,
-    });
+    // Handle render with auto-save
+    const handleRenderClick = () => {
+        setShowRenderConfirm(true);
+    };
 
-    // Use formValues if available, otherwise fallback to defaultValues
-    const playerInputProps: WarehouseVideoProps = (formValues as WarehouseVideoProps) || defaultValues;
+    const handleRenderConfirm = async () => {
+        setShowRenderConfirm(false);
+        try {
+            setIsSavingForRender(true);
+
+            // Validate form
+            const isValid = await form.trigger();
+            if (!isValid) {
+                showError("Validation failed", "Please fix the validation errors before rendering");
+                setIsSavingForRender(false);
+                return;
+            }
+
+            // Get current form data
+            const formData = form.getValues();
+
+            // Upload pending files if any
+            if (pendingUploads.size > 0) {
+                showWarning("Uploading files", `Uploading ${pendingUploads.size} file(s) before render...`);
+
+                const uploadRequests: UploadRequest[] = Array.from(pendingUploads.entries()).map(([fieldPath, file]) => {
+                    let mediaType: 'video' | 'audio' | 'image' = 'video';
+                    if (fieldPath.toLowerCase().includes('audio')) {
+                        mediaType = 'audio';
+                    } else if (fieldPath.toLowerCase().includes('image')) {
+                        mediaType = 'image';
+                    }
+                    return { file, compositionId: id!, fieldPath, mediaType };
+                });
+
+                const uploadResults = await uploadBatch(uploadRequests);
+                const failures = uploadResults.filter(result => !result.success);
+                if (failures.length > 0) {
+                    const errorMessages = failures.map(f => `${f.fieldPath}: ${f.error}`).join('\n');
+                    showError("Upload failed", errorMessages);
+                    setIsSavingForRender(false);
+                    return;
+                }
+
+                // Replace blob URLs with real R2 URLs in form data
+                uploadResults.forEach(result => {
+                    if (result.success && result.publicUrl) {
+                        const pathParts = result.fieldPath.split('.');
+                        let current: any = formData;
+                        for (let i = 0; i < pathParts.length - 1; i++) {
+                            if (!current[pathParts[i]]) current[pathParts[i]] = {};
+                            current = current[pathParts[i]];
+                        }
+                        current[pathParts[pathParts.length - 1]] = result.publicUrl;
+                    }
+                });
+
+                // Update form with real URLs so the render uses them
+                form.reset(formData);
+                setPendingUploads(new Map());
+            }
+
+            // Save composition
+            await updateComposition(id!, formData);
+            showSuccess("Project saved", "Starting render...");
+            setIsSavingForRender(false);
+
+            // Trigger render on next React render cycle (after form values update)
+            setTriggerRender(true);
+        } catch (error) {
+            console.error("Failed to save before render:", error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to save project";
+            showError("Save failed", errorMessage);
+            setIsSavingForRender(false);
+        }
+    };
+
+    // Watch form values for real-time preview
+    // (Already defined above for rendering hook)
 
     // Calculate dynamic video duration based on audio durations with padding
     const calculateDuration = (props: WarehouseVideoProps): number => {
         const fps = COMPOSITION_FPS;
         const introDuration = 5 * fps;
         const outroDuration = 5 * fps;
-        
+
         // Calculate each section duration using actual audio durations and padding
         const satDroneCalc = calculateSectionDuration(
             props.satDroneSection.audio.durationInSeconds || 0,
             props.satDroneSection.sectionDurationInSeconds
         );
-        
+
         const locationCalc = calculateSectionDuration(
             props.locationSection.audio.durationInSeconds || 0,
             props.locationSection.sectionDurationInSeconds
         );
-        
+
         const approachRoadCalc = calculateSectionDuration(
             props.approachRoadSection.audio.durationInSeconds || 0,
             props.approachRoadSection.sectionDurationInSeconds
         );
-        
+
         // Three separate internal sections
         const internalWideShotCalc = calculateSectionDuration(
             props.internalWideShotSection.audio.durationInSeconds || 0,
@@ -549,7 +645,7 @@ function EditorContent() {
             props.internalUtilitiesSection.audio.durationInSeconds || 0,
             props.internalUtilitiesSection.sectionDurationInSeconds
         );
-        
+
         const dockingCalc = calculateSectionDuration(
             props.dockingSection.audio.durationInSeconds || 0,
             props.dockingSection.sectionDurationInSeconds
@@ -558,7 +654,7 @@ function EditorContent() {
             props.complianceSection.audio.durationInSeconds || 0,
             props.complianceSection.sectionDurationInSeconds
         );
-        
+
         // Use actual duration (which includes padding) for each section
         const satDroneDuration = satDroneCalc.actualDuration * fps;
         const locationDuration = locationCalc.actualDuration * fps;
@@ -568,10 +664,10 @@ function EditorContent() {
         const internalUtilitiesDuration = internalUtilitiesCalc.actualDuration * fps;
         const dockingDuration = dockingCalc.actualDuration * fps;
         const complianceDuration = complianceCalc.actualDuration * fps;
-        
-        return introDuration + satDroneDuration + locationDuration + approachRoadDuration + 
-               internalWideShotDuration + internalDockDuration + internalUtilitiesDuration + 
-               dockingDuration + complianceDuration + outroDuration;
+
+        return introDuration + satDroneDuration + locationDuration + approachRoadDuration +
+            internalWideShotDuration + internalDockDuration + internalUtilitiesDuration +
+            dockingDuration + complianceDuration + outroDuration;
     };
 
     const videoDuration = calculateDuration(playerInputProps);
@@ -616,6 +712,52 @@ function EditorContent() {
                 <LoadingOverlay message="Generating speech..." />
             )}
 
+            {/* Render Confirmation Modal */}
+            {showRenderConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+                        <div className="px-6 pt-6 pb-4">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100">
+                                    <span className="text-xl">🎬</span>
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                    Save & Render Video
+                                </h3>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                                Your project will be saved before rendering to ensure all media files are uploaded and accessible.
+                            </p>
+                            {pendingUploads.size > 0 && (
+                                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <span className="text-amber-600 text-sm">⚠️</span>
+                                    <span className="text-xs font-medium text-amber-700">
+                                        {pendingUploads.size} file{pendingUploads.size !== 1 ? 's' : ''} will be uploaded to cloud storage
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setShowRenderConfirm(false)}
+                                className="px-4"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleRenderConfirm}
+                                className="px-6 bg-purple-600 hover:bg-purple-700"
+                            >
+                                Save & Render
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10 w-full">
                 <div className="flex items-center justify-between w-full">
@@ -634,6 +776,81 @@ function EditorContent() {
                                 </span>
                             </div>
                         )}
+
+                        {/* Render Status Display */}
+                        {renderState.status === "rendering" && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-md">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600"></div>
+                                <span className="text-xs font-medium text-purple-700">
+                                    Rendering: {Math.round(renderState.progress * 100)}%
+                                </span>
+                            </div>
+                        )}
+
+                        {renderState.status === "done" && (
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            const response = await fetch(renderState.url);
+                                            const blob = await response.blob();
+                                            const blobUrl = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = blobUrl;
+                                            a.download = 'warehouse-video.mp4';
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(blobUrl);
+                                        } catch (error) {
+                                            console.error('Download failed:', error);
+                                            window.open(renderState.url, '_blank');
+                                        }
+                                    }}
+                                    className="px-4 bg-green-600 hover:bg-green-700"
+                                >
+                                    Download Video
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={undoRender}
+                                    variant="secondary"
+                                    className="text-sm"
+                                >
+                                    Render Again
+                                </Button>
+                            </div>
+                        )}
+
+                        {renderState.status === "error" && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-md max-w-md">
+                                <span className="text-xs font-medium text-red-700 truncate" title={renderState.error?.message}>
+                                    Render failed: {renderState.error?.message || "Unknown error"}
+                                </span>
+                                <Button
+                                    type="button"
+                                    onClick={undoRender}
+                                    variant="secondary"
+                                    className="text-xs py-1 px-2 shrink-0"
+                                >
+                                    Try Again
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Render Button */}
+                        {(renderState.status === "init" || renderState.status === "invoking") && (
+                            <Button
+                                type="button"
+                                onClick={handleRenderClick}
+                                disabled={renderState.status === "invoking" || isSavingForRender}
+                                className="px-6 bg-purple-600 hover:bg-purple-700"
+                            >
+                                {isSavingForRender ? "Saving..." : renderState.status === "invoking" ? "Starting..." : "🎬 Render Video"}
+                            </Button>
+                        )}
+
                         <Button
                             type="button"
                             onClick={handleSaveProject}

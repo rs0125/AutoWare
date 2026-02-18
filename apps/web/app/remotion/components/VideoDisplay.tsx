@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Video, Audio, useVideoConfig } from "remotion";
+import { AbsoluteFill, Video, Audio, useVideoConfig, OffthreadVideo } from "remotion";
 
 interface VideoDisplayProps {
     videoUrl?: string;
@@ -23,12 +23,15 @@ export const VideoDisplay: React.FC<VideoDisplayProps> = ({
         <AbsoluteFill style={{ backgroundColor: "black" }}>
             {/* 1. Video Layer */}
             {videoUrl ? (
-                <Video
+                <OffthreadVideo
                     src={videoUrl}
                     style={{
                         width: "100%",
                         height: "100%",
                         objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                        console.error('Video failed to load:', videoUrl, e);
                     }}
                 />
             ) : (

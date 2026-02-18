@@ -1,6 +1,7 @@
 import { IntroModel } from "~/remotion/models/intro";
 import {
   AbsoluteFill,
+  Img,
   staticFile,
   useCurrentFrame,
   interpolate
@@ -27,7 +28,7 @@ export const Intro: React.FC<IntroModel> = ({ clientname, region, state }) => {
           color: "#1f2937",
         }}
       >
-        <img
+        <Img
           src={staticFile("WOG_logo.png")}
           width="300"
           style={{ marginBottom: 20 }}

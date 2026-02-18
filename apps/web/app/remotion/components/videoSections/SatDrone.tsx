@@ -1,10 +1,10 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio, Video } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio, OffthreadVideo, Img } from "remotion";
 import { satdroneModel } from "~/remotion/models/satdrone";
 
-export const SatDrone: React.FC<satdroneModel> = ({ 
-  latitude, 
-  longitude, 
-  dronevideourl, 
+export const SatDrone: React.FC<satdroneModel> = ({
+  latitude,
+  longitude,
+  dronevideourl,
   satimageurl,
   audio,
   startPaddingInSeconds = 0,
@@ -55,6 +55,9 @@ export const SatDrone: React.FC<satdroneModel> = ({
     }
   );
 
+  // Only show satellite image when it should be visible (avoid rendering when opacity is 0)
+  const showSatelliteImage = !hasDroneVideo || frame >= (droneVideoDuration - transitionDuration);
+
   return (
     <>
       <AbsoluteFill
@@ -64,13 +67,14 @@ export const SatDrone: React.FC<satdroneModel> = ({
         }}
       >
         {/* Drone Video Layer (if provided) - shows first */}
-        {hasDroneVideo && dronevideourl && (
+        {hasDroneVideo && dronevideourl && droneOpacity > 0 && (
           <AbsoluteFill
             style={{
               opacity: droneOpacity,
+              zIndex: 2,
             }}
           >
-            <Video
+            <OffthreadVideo
               src={dronevideourl}
               style={{
                 width: "100%",
@@ -83,30 +87,35 @@ export const SatDrone: React.FC<satdroneModel> = ({
         )}
 
         {/* Satellite Image with Zoom Animation - shows after drone video */}
-        <AbsoluteFill
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            opacity: satelliteOpacity,
-          }}
-        >
-          <img
-            src={satelliteImageUrl}
-            alt="Satellite view"
+        {showSatelliteImage && (
+          <AbsoluteFill
             style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transform: `scale(${scale})`,
-              transformOrigin: "center center",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              opacity: satelliteOpacity,
+              zIndex: 1,
+              backgroundColor: "#000",
             }}
-          />
-        </AbsoluteFill>
+          >
+            <Img
+              src={satelliteImageUrl}
+              alt="Satellite view"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: `scale(${scale})`,
+                transformOrigin: "center center",
+                willChange: "transform",
+              }}
+            />
+          </AbsoluteFill>
+        )}
 
         {/* Audio Layer */}
         {audio?.audioUrl && (
-          <Audio 
+          <Audio
             src={audio.audioUrl}
           />
         )}
@@ -118,6 +127,7 @@ export const SatDrone: React.FC<satdroneModel> = ({
               justifyContent: "flex-end",
               alignItems: "center",
               paddingBottom: 50,
+              zIndex: 3,
             }}
           >
             <p

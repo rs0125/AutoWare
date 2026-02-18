@@ -1,4 +1,4 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio, Video } from "remotion";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, Audio, OffthreadVideo } from "remotion";
 
 export const InternalVid: React.FC<any> = (props) => {
   const frame = useCurrentFrame();
@@ -81,9 +81,17 @@ export const InternalVid: React.FC<any> = (props) => {
           );
         }
 
+        // Only render video when it should be visible (opacity > 0)
+        const shouldRender = isFirst && isLast ? true : 
+          (isFirst ? frame < video.end : 
+            (isLast ? frame >= video.start - transitionDuration : 
+              frame >= video.start - transitionDuration && frame < video.end));
+
+        if (!shouldRender) return null;
+
         return (
-          <AbsoluteFill key={video.url} style={{ opacity }}>
-            <Video
+          <AbsoluteFill key={video.url} style={{ opacity, backgroundColor: "black" }}>
+            <OffthreadVideo
               src={video.url}
               style={{
                 width: "100%",

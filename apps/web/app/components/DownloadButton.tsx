@@ -27,19 +27,43 @@ export const DownloadButton: React.FC<{
     throw new Error("Download button should not be rendered when not done");
   }
 
+  const handleDownload = async () => {
+    try {
+      // Fetch the video as a blob to bypass CORS restrictions on download attribute
+      const response = await fetch(state.url);
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = 'warehouse-video.mp4';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to direct link if blob download fails
+      window.open(state.url, '_blank');
+    }
+  };
+
   return (
     <div className="flex">
-      <Button secondary onClick={undo}>
+      <Button variant="secondary" onClick={undo}>
         <UndoIcon></UndoIcon>
       </Button>
       <Spacing></Spacing>
-      <a href={state.url}>
-        <Button>
-          Download video
-          <Spacing></Spacing>
-          <Megabytes sizeInBytes={state.size}></Megabytes>
-        </Button>
-      </a>
+      <Button onClick={handleDownload}>
+        Download video
+        <Spacing></Spacing>
+        <Megabytes sizeInBytes={state.size}></Megabytes>
+      </Button>
     </div>
   );
 };

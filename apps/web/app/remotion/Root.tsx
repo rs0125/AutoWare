@@ -1,6 +1,5 @@
 import { Composition } from "remotion";
 import {
-  DURATION_IN_FRAMES,
   COMPOSITION_FPS,
   COMPOSITION_HEIGHT,
   COMPOSITION_ID,
@@ -8,6 +7,69 @@ import {
 } from "./constants.mjs";
 import { Main } from "./components/Main";
 import { WarehouseVideoProps, CompositionProps } from "@repo/shared";
+import { loadFont } from "@remotion/google-fonts/Inter";
+
+const { fontFamily } = loadFont();
+
+// Helper function to calculate total video duration
+function calculateTotalDuration(props: WarehouseVideoProps): number {
+  const fps = COMPOSITION_FPS;
+
+  const calculateSectionDuration = (audioDuration: number, userSetDuration?: number) => {
+    if (!audioDuration || audioDuration <= 0) {
+      return userSetDuration || 0;
+    }
+    const minimumDuration = audioDuration + 1.0;
+    return Math.max(userSetDuration || minimumDuration, minimumDuration);
+  };
+
+  const introDuration = 5 * fps;
+  const outroDuration = 5 * fps;
+
+  const satDroneDuration = calculateSectionDuration(
+    props.satDroneSection.audio.durationInSeconds || 0,
+    props.satDroneSection.sectionDurationInSeconds
+  ) * fps;
+
+  const locationDuration = calculateSectionDuration(
+    props.locationSection.audio.durationInSeconds || 0,
+    props.locationSection.sectionDurationInSeconds
+  ) * fps;
+
+  const approachRoadDuration = calculateSectionDuration(
+    props.approachRoadSection.audio.durationInSeconds || 0,
+    props.approachRoadSection.sectionDurationInSeconds
+  ) * fps;
+
+  const internalWideShotDuration = calculateSectionDuration(
+    props.internalWideShotSection.audio.durationInSeconds || 0,
+    props.internalWideShotSection.sectionDurationInSeconds
+  ) * fps;
+
+  const internalDockDuration = calculateSectionDuration(
+    props.internalDockSection.audio.durationInSeconds || 0,
+    props.internalDockSection.sectionDurationInSeconds
+  ) * fps;
+
+  const internalUtilitiesDuration = calculateSectionDuration(
+    props.internalUtilitiesSection.audio.durationInSeconds || 0,
+    props.internalUtilitiesSection.sectionDurationInSeconds
+  ) * fps;
+
+  const dockingDuration = calculateSectionDuration(
+    props.dockingSection.audio.durationInSeconds || 0,
+    props.dockingSection.sectionDurationInSeconds
+  ) * fps;
+
+  const complianceDuration = calculateSectionDuration(
+    props.complianceSection.audio.durationInSeconds || 0,
+    props.complianceSection.sectionDurationInSeconds
+  ) * fps;
+
+  return introDuration + satDroneDuration + locationDuration + approachRoadDuration +
+    internalWideShotDuration + internalDockDuration + internalUtilitiesDuration +
+    dockingDuration + complianceDuration + outroDuration;
+}
 
 // Placeholder data using the master schema from shared package
 const defaultWarehouseProps: WarehouseVideoProps = {
@@ -126,12 +188,17 @@ export const RemotionRoot = () => {
       <Composition
         id={COMPOSITION_ID}
         component={Main}
-        durationInFrames={DURATION_IN_FRAMES}
+        durationInFrames={calculateTotalDuration(defaultWarehouseProps)}
         fps={COMPOSITION_FPS}
         width={COMPOSITION_WIDTH}
         height={COMPOSITION_HEIGHT}
         defaultProps={defaultWarehouseProps}
         schema={CompositionProps}
+        calculateMetadata={({ props }) => {
+          return {
+            durationInFrames: calculateTotalDuration(props),
+          };
+        }}
       />
     </>
   );

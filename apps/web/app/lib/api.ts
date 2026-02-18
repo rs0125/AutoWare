@@ -10,13 +10,13 @@ import { RenderResponse } from "./types";
 
 export type ApiResponse<Res> =
   | {
-      type: "error";
-      message: string;
-    }
+    type: "error";
+    message: string;
+  }
   | {
-      type: "success";
-      data: Res;
-    };
+    type: "success";
+    data: Res;
+  };
 
 // VideoComposition type matching the backend model
 export interface VideoComposition {
@@ -56,7 +56,28 @@ const makeRequest = async <Res>(
       "content-type": "application/json",
     },
   });
-  const json = (await result.json()) as ApiResponse<Res>;
+
+  // Handle non-OK HTTP responses
+  if (!result.ok) {
+    let errorMessage = `Request to ${endpoint} failed with status ${result.status}`;
+    try {
+      const errorJson = await result.json();
+      if (errorJson.message) errorMessage = errorJson.message;
+      else if (errorJson.type === "error" && errorJson.message) errorMessage = errorJson.message;
+    } catch {
+      // Response wasn't JSON, use the status text
+      errorMessage = `${endpoint}: ${result.status} ${result.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  let json: ApiResponse<Res>;
+  try {
+    json = (await result.json()) as ApiResponse<Res>;
+  } catch {
+    throw new Error(`Invalid JSON response from ${endpoint}`);
+  }
+
   if (json.type === "error") {
     throw new Error(json.message);
   }
@@ -81,7 +102,7 @@ const fetchRequest = async <Res>(
     if (!result.ok) {
       const error = await result.json().catch(() => ({ error: 'Request failed' }));
       const errorMessage = error.error || error.message || `Request failed with status ${result.status}`;
-      
+
       // Provide more specific error messages based on status code
       if (result.status === 404) {
         throw new Error(`Resource not found: ${errorMessage}`);
@@ -115,7 +136,7 @@ export const renderVideo = async ({
     inputProps,
   };
 
-  return makeRequest<RenderResponse>("/api/lambda/render", body);
+  return makeRequest<RenderResponse>("/render", body);
 };
 
 export const getProgress = async ({
@@ -130,7 +151,7 @@ export const getProgress = async ({
     bucketName,
   };
 
-  return makeRequest<ProgressResponse>("/api/lambda/progress", body);
+  return makeRequest<ProgressResponse>(`/progress/${id}`, body);
 };
 
 // Composition Management API Methods
@@ -301,7 +322,7 @@ export const generateAudioFromText = async (
     if (!result.ok) {
       const error = await result.json().catch(() => ({ error: 'Request failed' }));
       const errorMessage = error.error || error.message || `Request failed with status ${result.status}`;
-      
+
       if (result.status === 404) {
         throw new Error(`Project not found: ${errorMessage}`);
       } else if (result.status === 400) {
@@ -316,17 +337,17 @@ export const generateAudioFromText = async (
     return result.json();
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     // Handle abort/timeout errors
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Request timed out: TTS generation is taking longer than expected. Please try again.');
     }
-    
+
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error('Network error: Unable to connect to TTS service');
     }
-    
+
     throw error;
   }
 };
