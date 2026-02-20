@@ -6,8 +6,9 @@ import {
   useCurrentFrame,
   interpolate
 } from "remotion";
+import { loadFont } from "@remotion/google-fonts/Inter";
 
-
+const { fontFamily } = loadFont();
 
 export const Intro: React.FC<IntroModel> = ({ clientname, region, state }) => {
   const frame = useCurrentFrame();
@@ -24,7 +25,7 @@ export const Intro: React.FC<IntroModel> = ({ clientname, region, state }) => {
           fontSize: 40,
           backgroundColor: "white",
           textAlign: "center",
-          fontFamily: "Inter, sans-serif",
+          fontFamily,
           color: "#1f2937",
         }}
       >

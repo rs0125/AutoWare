@@ -25,6 +25,7 @@ export const VideoDisplay: React.FC<VideoDisplayProps> = ({
             {videoUrl ? (
                 <OffthreadVideo
                     src={videoUrl}
+                    volume={0}
                     style={{
                         width: "100%",
                         height: "100%",
@@ -50,7 +51,7 @@ export const VideoDisplay: React.FC<VideoDisplayProps> = ({
 
             {/* 2. Audio Layer */}
             {audioUrl && (
-                <Audio 
+                <Audio
                     src={audioUrl}
                 />
             )}

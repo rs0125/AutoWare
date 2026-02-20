@@ -1,4 +1,4 @@
-import { Sequence } from "remotion";
+import { Sequence, Audio, Loop, staticFile } from "remotion";
 import { Intro } from "./videoSections/Intro";
 import { Outro } from "./videoSections/Outro";
 import { SatDrone } from "./videoSections/SatDrone";
@@ -46,7 +46,7 @@ import { TransitionWrapper } from "./TransitionWrapper";
 
 export const Main: React.FC<WarehouseVideoProps> = (props) => {
   const fps = 30;
-  const TRANSITION_DURATION = 15; // 0.5s overlap
+  const TRANSITION_DURATION = 10; // 0.33s overlap
 
   // Debug: Check if props are being passed
   console.log("Main component props:", props);
@@ -133,14 +133,14 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
     <>
       {/* First Video Intro*/}
       <Sequence from={0} durationInFrames={introDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={introDuration}>
           <Intro clientname={props.intro.clientName} region={props.intro.projectLocationName} />
         </TransitionWrapper>
       </Sequence>
 
       {/* Second Video SatDrone */}
       <Sequence from={satDroneStart} durationInFrames={satDroneDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={satDroneDuration}>
           <SatDrone
             dronevideourl={props.satDroneSection.droneVideoUrl || "Test"}
             satimageurl={props.satDroneSection.satelliteImageUrl}
@@ -154,7 +154,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Third Video Location*/}
       <Sequence from={locationStart} durationInFrames={locationDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={locationDuration}>
           <LocationVid
             {...props.locationSection}
             satelliteImageUrl={props.satDroneSection.satelliteImageUrl}
@@ -165,7 +165,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Fourth Video - Approach Road */}
       <Sequence from={approachRoadStart} durationInFrames={approachRoadDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={approachRoadDuration}>
           <ApproachRoad
             {...props.approachRoadSection}
             startPaddingInSeconds={approachRoadCalc.startPadding}
@@ -175,7 +175,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Fifth Video - Internal Wide Shot */}
       <Sequence from={internalWideShotStart} durationInFrames={internalWideShotDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={internalWideShotDuration}>
           <InternalWideShot
             {...props.internalWideShotSection}
             startPaddingInSeconds={internalWideShotCalc.startPadding}
@@ -185,7 +185,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Sixth Video - Internal Dock */}
       <Sequence from={internalDockStart} durationInFrames={internalDockDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={internalDockDuration}>
           <InternalDock
             {...props.internalDockSection}
             startPaddingInSeconds={internalDockCalc.startPadding}
@@ -195,7 +195,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Seventh Video - Internal Utilities */}
       <Sequence from={internalUtilitiesStart} durationInFrames={internalUtilitiesDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={internalUtilitiesDuration}>
           <InternalUtilities
             {...props.internalUtilitiesSection}
             startPaddingInSeconds={internalUtilitiesCalc.startPadding}
@@ -205,7 +205,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Eighth Video Docking & parking*/}
       <Sequence from={dockingStart} durationInFrames={dockingDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={dockingDuration}>
           <DockingParkingVid
             {...props.dockingSection}
             startPaddingInSeconds={dockingCalc.startPadding}
@@ -215,7 +215,7 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Ninth Video Compliances */}
       <Sequence from={complianceStart} durationInFrames={complianceDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={complianceDuration}>
           <CompliancesVid
             {...props.complianceSection}
             startPaddingInSeconds={complianceCalc.startPadding}
@@ -225,10 +225,18 @@ export const Main: React.FC<WarehouseVideoProps> = (props) => {
 
       {/* Tenth Video (Outro) */}
       <Sequence from={outroStart} durationInFrames={outroDuration}>
-        <TransitionWrapper transitionDuration={TRANSITION_DURATION}>
+        <TransitionWrapper transitionDuration={TRANSITION_DURATION} sequenceDuration={outroDuration}>
           <Outro />
         </TransitionWrapper>
       </Sequence>
+
+      {/* Background Music */}
+      <Loop durationInFrames={totalDuration}>
+        <Audio
+          src={staticFile("audio/backgroundmusic.mp3")}
+          volume={0.02}
+        />
+      </Loop>
     </>
   );
 };

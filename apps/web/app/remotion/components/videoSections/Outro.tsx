@@ -1,4 +1,7 @@
 import { AbsoluteFill } from "remotion";
+import { loadFont } from "@remotion/google-fonts/Inter";
+
+const { fontFamily } = loadFont();
 
 export const Outro = () => {
 
@@ -9,7 +12,7 @@ export const Outro = () => {
           justifyContent: "center",
           alignItems: "center",
           backgroundColor: "white",
-          fontFamily: "Inter, sans-serif",
+          fontFamily,
         }}
       >
         <div style={{ textAlign: "center", color: "#374151" }}>

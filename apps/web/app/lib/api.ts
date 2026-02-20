@@ -271,6 +271,9 @@ export interface GenerateAudioRequest {
     text: string;
     fieldPath: string;
     voice?: string;
+    language?: string;
+    speed?: number;
+    sampleRate?: number;
   }>;
   updateComposition?: boolean;
 }
@@ -287,7 +290,7 @@ export interface GenerateAudioResponse {
 }
 
 /**
- * Generate audio from text using TTS with timeout handling
+ * Generate audio from text using Sarvam AI TTS with timeout handling
  * @param compositionId - The UUID of the composition
  * @param transcripts - Array of transcript objects with text and fieldPath
  * @param timeoutMs - Timeout in milliseconds (default: 30000ms = 30s)
@@ -296,7 +299,14 @@ export interface GenerateAudioResponse {
  */
 export const generateAudioFromText = async (
   compositionId: string,
-  transcripts: Array<{ text: string; fieldPath: string; voice?: string }>,
+  transcripts: Array<{ 
+    text: string; 
+    fieldPath: string; 
+    voice?: string;
+    language?: string;
+    speed?: number;
+    sampleRate?: number;
+  }>,
   timeoutMs: number = 30000,
 ): Promise<GenerateAudioResponse> => {
   // Create abort controller for timeout
@@ -304,7 +314,7 @@ export const generateAudioFromText = async (
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const result = await fetch('/api/tts/generate-audio', {
+    const result = await fetch('/api/tts/generate-audio-sarvam', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

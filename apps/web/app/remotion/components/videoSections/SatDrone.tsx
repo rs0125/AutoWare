@@ -76,6 +76,7 @@ export const SatDrone: React.FC<satdroneModel> = ({
           >
             <OffthreadVideo
               src={dronevideourl}
+              volume={0}
               style={{
                 width: "100%",
                 height: "100%",
